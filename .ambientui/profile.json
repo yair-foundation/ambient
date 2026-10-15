@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "surveyedAt": "2026-10-15T04:22:26.601Z",
-  "surveyMs": 186,
+  "surveyedAt": "2026-10-15T04:22:39.637Z",
+  "surveyMs": 178,
   "repo": {
     "gitRoot": ".",
     "isGit": true,
@@ -47,7 +47,7 @@
   },
   "git": {
     "isRepo": true,
-    "head": "badd0516f008d903baa388b0a581860d5034f1fc",
+    "head": "d8c4f6bc40f7694aa0f3a02debb46e9a16793fee",
     "branch": "claude/nice-pascal-yc0t0k",
     "clean": true,
     "dirty": [],
@@ -338,10 +338,10 @@
     "agentsSkills": false
   },
   "product": {
-    "name": "Ambient",
+    "name": "ClientOps",
     "candidates": [
       {
-        "value": "ambient",
+        "value": "ClientOps",
         "kind": "title",
         "file": "index.html"
       },
@@ -429,12 +429,12 @@
     "aliases.tsconfig": [
       {
         "file": "tsconfig.app.json",
-        "line": 11,
+        "line": 10,
         "note": "@/* → ./src/*"
       },
       {
         "file": "tsconfig.json",
-        "line": 9,
+        "line": 8,
         "note": "@/* → ./src/*"
       }
     ],
@@ -523,7 +523,7 @@
       {
         "file": "index.html",
         "line": 7,
-        "note": "title: ambient"
+        "note": "title: ClientOps"
       }
     ],
     "scripts.lint": [
@@ -674,7 +674,7 @@
     },
     "product": {
       "level": "medium",
-      "reason": "title: ambient"
+      "reason": "title: ClientOps"
     },
     "entry": {
       "level": "high",
@@ -690,31 +690,31 @@
     }
   },
   "baseline": {
-    "takenAt": "2026-10-15T04:22:26.602Z",
+    "takenAt": "2026-10-15T04:22:39.638Z",
     "checks": [
       {
         "id": "typecheck",
         "command": "npx tsc --noEmit -p tsconfig.app.json",
-        "code": 2,
+        "code": 0,
         "timedOut": false,
-        "ms": 1082,
-        "tail": "\u001b[96mtsconfig.app.json\u001b[0m:\u001b[93m10\u001b[0m:\u001b[93m5\u001b[0m - \u001b[91merror\u001b[0m\u001b[90m TS5101: \u001b[0mOption 'baseUrl' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '\"ignoreDeprecations\": \"6.0\"' to silence this error.\n  Visit https://aka.ms/ts6 for migration information.\n\n\u001b[7m10\u001b[0m     \"baseUrl\": \".\",\n\u001b[7m  \u001b[0m \u001b[91m    ~~~~~~~~~\u001b[0m\n\n\nFound 1 error in tsconfig.app.json\u001b[90m:10\u001b[0m"
+        "ms": 1429,
+        "tail": ""
       },
       {
         "id": "lint",
         "command": "npm run lint",
         "code": 0,
         "timedOut": false,
-        "ms": 381,
+        "ms": 340,
         "tail": "> ambient@0.0.0 lint\n> oxlint\n\nsrc/components/ui/button.tsx:57:18: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components."
       },
       {
         "id": "build",
         "command": "npm run build",
-        "code": 2,
+        "code": 1,
         "timedOut": false,
-        "ms": 1571,
-        "tail": "> ambient@0.0.0 build\n> tsc -b && vite build\n\n\u001b[96mtsconfig.app.json\u001b[0m:\u001b[93m10\u001b[0m:\u001b[93m5\u001b[0m - \u001b[91merror\u001b[0m\u001b[90m TS5101: \u001b[0mOption 'baseUrl' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '\"ignoreDeprecations\": \"6.0\"' to silence this error.\n  Visit https://aka.ms/ts6 for migration information.\n\n\u001b[7m10\u001b[0m     \"baseUrl\": \".\",\n\u001b[7m  \u001b[0m \u001b[91m    ~~~~~~~~~\u001b[0m\n\n\nFound 1 error."
+        "ms": 2630,
+        "tail": " \u001b[38;5;240m  │\u001b[0m         - src/App.tsx\n \u001b[38;5;240m  │\u001b[0m         - src/main.tsx\n \u001b[38;5;240m  │\u001b[0m         - index.html\n\u001b[38;5;246m───╯\u001b[0m\n\n\u001b[31m[UNRESOLVED_IMPORT] \u001b[0mCould not resolve './assets/vite.svg' in src/App.tsx\n   \u001b[38;5;246m╭\u001b[0m\u001b[38;5;246m─\u001b[0m\u001b[38;5;246m[\u001b[0m src/App.tsx:4:22 \u001b[38;5;246m]\u001b[0m\n   \u001b[38;5;246m│\u001b[0m\n \u001b[38;5;246m4 │\u001b[0m \u001b[38;5;249mi\u001b[0m\u001b[38;5;249mm\u001b[0m\u001b[38;5;249mp\u001b[0m\u001b[38;5;249mo\u001b[0m\u001b[38;5;249mr\u001b[0m\u001b[38;5;249mt\u001b[0m\u001b[38;5;249m \u001b[0m\u001b[38;5;249mv\u001b[0m\u001b[38;5;249mi\u001b[0m\u001b[38;5;249mt\u001b[0m\u001b[38;5;249me\u001b[0m\u001b[38;5;249mL\u001b[0m\u001b[38;5;249mo\u001b[0m\u001b[38;5;249mg\u001b[0m\u001b[38;5;249mo\u001b[0m\u001b[38;5;249m \u001b[0m\u001b[38;5;249mf\u001b[0m\u001b[38;5;249mr\u001b[0m\u001b[38;5;249mo\u001b[0m\u001b[38;5;249mm\u001b[0m\u001b[38;5;249m \u001b[0m\"./assets/vite.svg\"\u001b[38;5;249m;\u001b[0m\n \u001b[38;5;240m  │\u001b[0m                      ─────────┬─────────  \n \u001b[38;5;240m  │\u001b[0m                               ╰─────────── Module not found.\n \u001b[38;5;240m  │\u001b[0m \n \u001b[38;5;240m  │\u001b[0m \u001b[38;5;115mHelp\u001b[0m: 'src/App.tsx' is imported by the following path:\n \u001b[38;5;240m  │\u001b[0m         - src/App.tsx\n \u001b[38;5;240m  │\u001b[0m         - src/main.tsx\n \u001b[38;5;240m  │\u001b[0m         - index.html\n\u001b[38;5;246m───╯\u001b[0m\n\n\u001b[31m[UNRESOLVED_IMPORT] \u001b[0mCould not resolve './App.css' in src/App.tsx\n   \u001b[38;5;246m╭\u001b[0m\u001b[38;5;246m─\u001b[0m\u001b[38;5;246m[\u001b[0m src/App.tsx:5:8 \u001b[38;5;246m]\u001b[0m\n   \u001b[38;5;246m│\u001b[0m\n \u001b[38;5;246m5 │\u001b[0m \u001b[38;5;249mi\u001b[0m\u001b[38;5;249mm\u001b[0m\u001b[38;5;249mp\u001b[0m\u001b[38;5;249mo\u001b[0m\u001b[38;5;249mr\u001b[0m\u001b[38;5;249mt\u001b[0m\u001b[38;5;249m \u001b[0m\"./App.css\"\u001b[38;5;249m;\u001b[0m\n \u001b[38;5;240m  │\u001b[0m        ─────┬─────  \n \u001b[38;5;240m  │\u001b[0m             ╰─────── Module not found.\n \u001b[38;5;240m  │\u001b[0m \n \u001b[38;5;240m  │\u001b[0m \u001b[38;5;115mHelp\u001b[0m: 'src/App.tsx' is imported by the following path:\n \u001b[38;5;240m  │\u001b[0m         - src/App.tsx\n \u001b[38;5;240m  │\u001b[0m         - src/main.tsx\n \u001b[38;5;240m  │\u001b[0m         - index.html\n\u001b[38;5;246m───╯\u001b[0m\n\u001b[31m\n    at aggregateBindingErrorsIntoJsError (file:///home/user/ambient/node_modules/rolldown/dist/shared/error-CBG33oNV.mjs:49:18)\n    at unwrapBindingResult (file:///home/user/ambient/node_modules/rolldown/dist/shared/error-CBG33oNV.mjs:19:128)\n    at #build (file:///home/user/ambient/node_modules/rolldown/dist/shared/rolldown-BYX6bV3R.mjs:146:34)\n    at async buildEnvironment (file:///home/user/ambient/node_modules/vite/dist/node/chunks/node.js:34716:66)\n    at async Object.build (file:///home/user/ambient/node_modules/vite/dist/node/chunks/node.js:35137:19)\n    at async Object.buildApp (file:///home/user/ambient/node_modules/vite/dist/node/chunks/node.js:35134:153)\n    at async CAC.<anonymous> (file:///home/user/ambient/node_modules/vite/dist/node/cli.js:780:3) {\n  errors: [Getter/Setter]\n}\u001b[39m"
       }
     ]
   }

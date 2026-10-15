@@ -118,7 +118,7 @@
   },
   "aliasEdits": [],
   "provider": {
-    "productName": "Ambient",
+    "productName": "ClientOps",
     "hotkey": "mod+k",
     "dark": "html-class"
   },
@@ -169,6 +169,13 @@
     "The product depends on the `cn` npm package; the layer's `cn` comes from @/lib/utils (clsx + tailwind-merge). Do not swap one for the other."
   ],
   "blockers": [],
-  "overrides": [],
+  "overrides": [
+    {
+      "key": "provider.productName",
+      "value": "ClientOps",
+      "because": "The product is the fictional B2B CRM ClientOps",
+      "at": "2026-10-15T04:22:45.363Z"
+    }
+  ],
   "given": {}
 }
