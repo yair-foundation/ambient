@@ -17,6 +17,7 @@ Review work with the skills `ds-manager`, `product-design-manager` and `product-
 
 ## Rules that need a person
 
+- `docs/rejected/` and `docs/proposals/` are not approved patterns. Do not copy from them.
 - Never promote a new pattern into the shared system (`src/components/ui`, `src/components/shared`, the Foundation,
   the registry) without a person's explicit approval. Build it locally and ask.
 - Do not deploy, and do not push without approval.

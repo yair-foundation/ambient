@@ -1,3 +1,7 @@
+> **Historical.** This compared two directions at the Prototype phase. Direction A was approved and is now the
+> product at `/triage`; Direction B is archived in `docs/rejected/direction-b/`. Routes `/triage/a` and `/triage/b`
+> no longer exist. See `docs/GOVERN-REVIEW.md`.
+
 # Phase 2: two lead-triage directions
 
 Mission: help an account manager triage incoming leads and decide what to do next.

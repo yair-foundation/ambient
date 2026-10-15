@@ -1,0 +1,276 @@
+diff --git a/docs/DECISION-LOG.md b/docs/DECISION-LOG.md
+index e965c5b..bb32904 100644
+--- a/docs/DECISION-LOG.md
++++ b/docs/DECISION-LOG.md
+@@ -8,6 +8,7 @@ Rejected directions are recorded so they are not rebuilt as standards.
+ | 2026-10-15 | Installed Ambient UI (start, foundation, ambient-layer, foundation-ambient-bridge, governance doors) into a new Vite + React + TypeScript + Tailwind v4 + shadcn project. | Official install path via `@ambient-ui/cli`. |
+ | 2026-10-15 | Foundation defaults: accent indigo, gray slate, radius 6px, spacing Default 4px, scaling 95%, motion Productive, icons Lucide. | No visual reference supplied. A calm, dense working tool: slate ground, accent only on actions, slightly tight corners, compact type. These are Foundation values, not component styling. |
+ | 2026-10-15 | Added shadcn primitives: badge, card, tabs, checkbox, textarea, alert, dropdown-menu. | Needed for the lead-triage prototypes. Textarea fills a gap the upstream docs list; documented in `src/ds/catalog.ts`. |
++| 2026-10-15 | Added shared pattern `UndoNotice` (`src/components/shared/undo-notice.tsx`): confirms that an action changed a record and lets the person reverse it. Registry entry, `/ds` demo, tests. Lead triage's decision banner now uses it. | The same "say exactly what changed, show the consequence, offer a way back" behavior was built several times while prototyping lead triage, and the existing Alert covers only the look. The shared part is the behavior contract: polite announcement, no auto-dismiss, Undo that cannot double-fire and reports failure honestly. Undo state and restore logic stay in each feature. Approved by a person. |
+ 
+ ## Watchlist
+ 
+diff --git a/src/components/shared/undo-notice.test.tsx b/src/components/shared/undo-notice.test.tsx
+new file mode 100644
+index 0000000..f64c8d6
+--- /dev/null
++++ b/src/components/shared/undo-notice.test.tsx
+@@ -0,0 +1,47 @@
++import { render, screen, waitFor } from "@testing-library/react"
++import userEvent from "@testing-library/user-event"
++import { describe, expect, it, vi } from "vitest"
++
++import { UndoNotice } from "./undo-notice"
++
++describe("UndoNotice", () => {
++  it("announces what changed and its consequence politely", () => {
++    render(<UndoNotice message="Fernhill Capital qualified." detail="11 left to triage." onUndo={() => {}} />)
++    const status = screen.getByRole("status")
++    expect(status).toHaveTextContent("Fernhill Capital qualified.")
++    expect(status).toHaveTextContent("11 left to triage.")
++  })
++
++  it("calls onUndo once per click and is disabled while the reversal is in flight", async () => {
++    let finish!: () => void
++    const onUndo = vi.fn(() => new Promise<void>((r) => (finish = r)))
++    const user = userEvent.setup()
++    render(<UndoNotice message="Done." onUndo={onUndo} />)
++    await user.click(screen.getByRole("button", { name: "Undo" }))
++    const busy = screen.getByRole("button", { name: "Undoing…" })
++    expect(busy).toBeDisabled()
++    await user.click(busy)
++    expect(onUndo).toHaveBeenCalledTimes(1)
++    finish()
++    await waitFor(() => expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled())
++  })
++
++  it.each([
++    ["rejects", () => Promise.reject(new Error("boom"))],
++    ["resolves false", () => Promise.resolve(false)],
++  ])("says nothing changed and keeps Undo available when the reversal %s", async (_n, onUndo) => {
++    const user = userEvent.setup()
++    render(<UndoNotice message="Done." detail="2 left." onUndo={onUndo} />)
++    await user.click(screen.getByRole("button", { name: "Undo" }))
++    expect(await screen.findByText("Couldn't undo. Nothing changed; try again.")).toBeVisible()
++    expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled()
++  })
++
++  it("does not show a failure after a successful undo", async () => {
++    const user = userEvent.setup()
++    render(<UndoNotice message="Done." detail="2 left." onUndo={() => Promise.resolve(true)} />)
++    await user.click(screen.getByRole("button", { name: "Undo" }))
++    await waitFor(() => expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled())
++    expect(screen.queryByText(/Couldn't undo/)).toBeNull()
++  })
++})
+diff --git a/src/components/shared/undo-notice.tsx b/src/components/shared/undo-notice.tsx
+new file mode 100644
+index 0000000..a30dabf
+--- /dev/null
++++ b/src/components/shared/undo-notice.tsx
+@@ -0,0 +1,58 @@
++import * as React from "react"
++
++import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
++import { Button } from "@/components/ui/button"
++import { Icon } from "@/components/ui/icon"
++
++export interface UndoNoticeProps {
++  /** What changed, in the person's terms: "Fernhill Capital qualified and assigned to you." */
++  message: string
++  /** The consequence worth knowing now, e.g. "11 left to triage." Keep it true to the data on screen. */
++  detail?: React.ReactNode
++  /**
++   * Reverse the action and restore the exact prior state. May be async. Resolving to `false` or rejecting
++   * means nothing was undone: the notice says so and keeps Undo available.
++   */
++  onUndo: () => void | boolean | Promise<unknown>
++  className?: string
++}
++
++/**
++ * Confirms that an action changed a record and lets the person reverse it.
++ * Announced politely (role=status), stays until the caller replaces or removes it (it never auto-dismisses),
++ * and its Undo is disabled while the reversal is in flight so it cannot fire twice.
++ */
++export function UndoNotice({ message, detail, onUndo, className }: UndoNoticeProps) {
++  const [pending, setPending] = React.useState(false)
++  const [failed, setFailed] = React.useState(false)
++
++  async function undo() {
++    setPending(true)
++    setFailed(false)
++    try {
++      const result = await onUndo()
++      if (result === false) setFailed(true)
++    } catch {
++      setFailed(true)
++    } finally {
++      setPending(false)
++    }
++  }
++
++  return (
++    <Alert role="status" className={className}>
++      <Icon name="check" />
++      <AlertTitle>{message}</AlertTitle>
++      {(detail || failed) && (
++        <AlertDescription>
++          {failed ? "Couldn't undo. Nothing changed; try again." : detail}
++        </AlertDescription>
++      )}
++      <AlertAction>
++        <Button size="sm" variant="outline" disabled={pending} onClick={() => void undo()}>
++          {pending ? "Undoing…" : "Undo"}
++        </Button>
++      </AlertAction>
++    </Alert>
++  )
++}
+diff --git a/src/ds/catalog.test.ts b/src/ds/catalog.test.ts
+index 2da9062..e019ae8 100644
+--- a/src/ds/catalog.test.ts
++++ b/src/ds/catalog.test.ts
+@@ -8,7 +8,7 @@ import { DEMOS } from "./demos"
+ const root = join(import.meta.dirname, "..")
+ const files = (dir: string): string[] => {
+   try {
+-    return readdirSync(join(root, dir)).filter((f) => f.endsWith(".tsx")).map((f) => f.replace(/\.tsx$/, ""))
++    return readdirSync(join(root, dir)).filter((f) => f.endsWith(".tsx") && !f.endsWith(".test.tsx")).map((f) => f.replace(/\.tsx$/, ""))
+   } catch {
+     return [] // the folder does not exist yet: nothing to document
+   }
+diff --git a/src/ds/catalog.ts b/src/ds/catalog.ts
+index caac895..c7fd747 100644
+--- a/src/ds/catalog.ts
++++ b/src/ds/catalog.ts
+@@ -9,7 +9,7 @@
+  * Demos live in ./demos.tsx, joined by `id`.
+  */
+ 
+-export type Layer = "product" | "ambient" | "local"
++export type Layer = "product" | "ambient" | "shared" | "local"
+ 
+ export interface CatalogEntry {
+   id: string
+@@ -198,6 +198,29 @@ export const CATALOG: CatalogEntry[] = [
+     whenToUse: ["Every icon in product UI"],
+     whenNotToUse: ["Carrying meaning without text"],
+   },
++  {
++    id: "undo-notice",
++    name: "UndoNotice",
++    layer: "shared",
++    source: "src/components/shared/undo-notice.tsx",
++    summary: "Confirms that an action changed a record and lets the person reverse it. Approved shared pattern.",
++    behavior: [
++      "props: message (what changed), detail (the consequence, e.g. a remaining count), onUndo",
++      "Composes Alert and Button. Announced politely (role=status); never auto-dismisses; stays until the caller replaces or removes it",
++      "onUndo must restore the exact prior state. It may be async. A rejection or a result of false shows \"Couldn't undo. Nothing changed; try again.\" and keeps Undo available",
++      "Undo is disabled while the reversal is in flight, so it cannot fire twice",
++      "It does not store or restore state: undo logic stays in the feature",
++    ],
++    whenToUse: [
++      "Right after an action that changes a record and that the person might want to take back (a decision, a status change, an assignment)",
++      "Show it where the person is looking and keep the counts in `detail` true to the data on screen",
++    ],
++    whenNotToUse: [
++      "Actions that cannot be reversed (use a confirmation before the action instead)",
++      "Errors (use Alert with a Retry action)",
++      "Passive information, or feedback that needs no way back",
++    ],
++  },
+   {
+     id: "assistant",
+     name: "Assistant (ambient layer)",
+diff --git a/src/ds/demos.tsx b/src/ds/demos.tsx
+index b80c1e7..fa3693e 100644
+--- a/src/ds/demos.tsx
++++ b/src/ds/demos.tsx
+@@ -13,6 +13,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
+ import { Skeleton } from "@/components/ui/skeleton"
+ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+ import { Textarea } from "@/components/ui/textarea"
++import { UndoNotice } from "@/components/shared/undo-notice"
+ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+ 
+ /** Live examples, keyed by catalog id. */
+@@ -132,5 +133,10 @@ export const DEMOS: Record<string, () => React.ReactNode> = {
+       ))}
+     </div>
+   ),
++  "undo-notice": () => (
++    <div className="max-w-md">
++      <UndoNotice message="Northwind Freight qualified and assigned to you." detail="11 left to triage." onUndo={() => {}} />
++    </div>
++  ),
+   assistant: () => <p className="text-sm text-muted-foreground">Press ⌘K (Ctrl+K) to open it.</p>,
+ }
+diff --git a/src/features/triage-queue/triage-queue.tsx b/src/features/triage-queue/triage-queue.tsx
+index d5837ae..9a30640 100644
+--- a/src/features/triage-queue/triage-queue.tsx
++++ b/src/features/triage-queue/triage-queue.tsx
+@@ -6,6 +6,7 @@
+  */
+ import * as React from "react"
+ 
++import { UndoNotice } from "@/components/shared/undo-notice"
+ import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
+ import { Button } from "@/components/ui/button"
+ import { Card, CardContent } from "@/components/ui/card"
+@@ -79,10 +80,12 @@ export default function TriageQueue({ store: injected }: { store?: TriageStore }
+   }
+ 
+   async function undo(entry: LogEntry) {
+-    await store.undo(entry.id)
++    const ok = await store.undo(entry.id)
++    if (!ok) return false
+     setBanner(null)
+     setSelectedId(entry.before.id)
+     setFilter("open")
++    return true
+   }
+ 
+   function onListKeyDown(e: React.KeyboardEvent) {
+@@ -109,16 +112,11 @@ export default function TriageQueue({ store: injected }: { store?: TriageStore }
+       </div>
+ 
+       {banner && (
+-        <Alert role="status">
+-          <Icon name="check" />
+-          <AlertTitle>{banner.message}</AlertTitle>
+-          <AlertDescription>{open.length ? `${open.length} left to triage.` : "The queue is clear."}</AlertDescription>
+-          <AlertAction>
+-            <Button size="sm" variant="outline" onClick={() => void undo(banner)}>
+-              Undo
+-            </Button>
+-          </AlertAction>
+-        </Alert>
++        <UndoNotice
++          message={banner.message}
++          detail={open.length ? `${open.length} left to triage.` : "The queue is clear."}
++          onUndo={() => undo(banner)}
++        />
+       )}
+ 
+       {load === "error" ? (
+diff --git a/src/lib/ambient/stubs/ds.ts b/src/lib/ambient/stubs/ds.ts
+index 70f265a..5fec97f 100644
+--- a/src/lib/ambient/stubs/ds.ts
++++ b/src/lib/ambient/stubs/ds.ts
+@@ -19,6 +19,15 @@ export const ds = page([
+       followUps: ["Who reviews changes to the system?"],
+     }),
+   },
++  {
++    ask: "Which shared patterns has a person approved?",
++    match: /approved|shared (pattern|component)|promot/i,
++    answer: () => ({
++      text: "UndoNotice (src/components/shared/undo-notice.tsx): confirms that an action changed a record and lets the person reverse it. See its entry in the Components tab, and docs/DECISION-LOG.md for why it was approved.",
++      refs: [],
++      followUps: ["Who reviews changes to the system?"],
++    }),
++  },
+   {
+     ask: "Who reviews changes to the system?",
+     match: /review|govern|approve|role/i,
