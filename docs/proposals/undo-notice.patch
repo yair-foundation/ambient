@@ -1,74 +1,130 @@
-diff --git a/docs/DECISION-LOG.md b/docs/DECISION-LOG.md
-index e965c5b..bb32904 100644
---- a/docs/DECISION-LOG.md
-+++ b/docs/DECISION-LOG.md
-@@ -8,6 +8,7 @@ Rejected directions are recorded so they are not rebuilt as standards.
- | 2026-10-15 | Installed Ambient UI (start, foundation, ambient-layer, foundation-ambient-bridge, governance doors) into a new Vite + React + TypeScript + Tailwind v4 + shadcn project. | Official install path via `@ambient-ui/cli`. |
- | 2026-10-15 | Foundation defaults: accent indigo, gray slate, radius 6px, spacing Default 4px, scaling 95%, motion Productive, icons Lucide. | No visual reference supplied. A calm, dense working tool: slate ground, accent only on actions, slightly tight corners, compact type. These are Foundation values, not component styling. |
- | 2026-10-15 | Added shadcn primitives: badge, card, tabs, checkbox, textarea, alert, dropdown-menu. | Needed for the lead-triage prototypes. Textarea fills a gap the upstream docs list; documented in `src/ds/catalog.ts`. |
-+| 2026-10-15 | Added shared pattern `UndoNotice` (`src/components/shared/undo-notice.tsx`): confirms that an action changed a record and lets the person reverse it. Registry entry, `/ds` demo, tests. Lead triage's decision banner now uses it. | The same "say exactly what changed, show the consequence, offer a way back" behavior was built several times while prototyping lead triage, and the existing Alert covers only the look. The shared part is the behavior contract: polite announcement, no auto-dismiss, Undo that cannot double-fire and reports failure honestly. Undo state and restore logic stay in each feature. Approved by a person. |
- 
- ## Watchlist
- 
 diff --git a/src/components/shared/undo-notice.test.tsx b/src/components/shared/undo-notice.test.tsx
 new file mode 100644
-index 0000000..f64c8d6
+index 0000000..05fd2e6
 --- /dev/null
 +++ b/src/components/shared/undo-notice.test.tsx
-@@ -0,0 +1,47 @@
+@@ -0,0 +1,115 @@
 +import { render, screen, waitFor } from "@testing-library/react"
 +import userEvent from "@testing-library/user-event"
 +import { describe, expect, it, vi } from "vitest"
 +
 +import { UndoNotice } from "./undo-notice"
 +
++const UNDO = { name: "Undo" }
++
 +describe("UndoNotice", () => {
 +  it("announces what changed and its consequence politely", () => {
-+    render(<UndoNotice message="Fernhill Capital qualified." detail="11 left to triage." onUndo={() => {}} />)
++    render(<UndoNotice message="Fernhill Capital qualified." detail="11 left to triage." onUndo={() => true} />)
 +    const status = screen.getByRole("status")
 +    expect(status).toHaveTextContent("Fernhill Capital qualified.")
 +    expect(status).toHaveTextContent("11 left to triage.")
 +  })
 +
-+  it("calls onUndo once per click and is disabled while the reversal is in flight", async () => {
-+    let finish!: () => void
-+    const onUndo = vi.fn(() => new Promise<void>((r) => (finish = r)))
++  it("runs a single reversal while in flight: disabled, and a second click does nothing", async () => {
++    let finish!: (ok: boolean) => void
++    const onUndo = vi.fn(() => new Promise<boolean>((r) => (finish = r)))
 +    const user = userEvent.setup()
 +    render(<UndoNotice message="Done." onUndo={onUndo} />)
-+    await user.click(screen.getByRole("button", { name: "Undo" }))
++    await user.click(screen.getByRole("button", UNDO))
 +    const busy = screen.getByRole("button", { name: "Undoing…" })
 +    expect(busy).toBeDisabled()
 +    await user.click(busy)
 +    expect(onUndo).toHaveBeenCalledTimes(1)
-+    finish()
-+    await waitFor(() => expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled())
++    finish(true)
++    await screen.findByRole("button", { name: "Undone" })
 +  })
 +
-+  it.each([
-+    ["rejects", () => Promise.reject(new Error("boom"))],
-+    ["resolves false", () => Promise.resolve(false)],
-+  ])("says nothing changed and keeps Undo available when the reversal %s", async (_n, onUndo) => {
++  it("treats only true as success, then cannot be triggered again", async () => {
++    const onUndo = vi.fn(() => Promise.resolve(true))
 +    const user = userEvent.setup()
 +    render(<UndoNotice message="Done." detail="2 left." onUndo={onUndo} />)
-+    await user.click(screen.getByRole("button", { name: "Undo" }))
-+    expect(await screen.findByText("Couldn't undo. Nothing changed; try again.")).toBeVisible()
-+    expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled()
++    await user.click(screen.getByRole("button", UNDO))
++    const done = await screen.findByRole("button", { name: "Undone" })
++    expect(done).toBeDisabled()
++    await user.click(done)
++    expect(onUndo).toHaveBeenCalledTimes(1)
++    expect(screen.queryByText(/Couldn't/)).toBeNull()
 +  })
 +
-+  it("does not show a failure after a successful undo", async () => {
++  it("accepts a synchronous true", async () => {
 +    const user = userEvent.setup()
-+    render(<UndoNotice message="Done." detail="2 left." onUndo={() => Promise.resolve(true)} />)
-+    await user.click(screen.getByRole("button", { name: "Undo" }))
-+    await waitFor(() => expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled())
-+    expect(screen.queryByText(/Couldn't undo/)).toBeNull()
++    render(<UndoNotice message="Done." onUndo={() => true} />)
++    await user.click(screen.getByRole("button", UNDO))
++    expect(await screen.findByRole("button", { name: "Undone" })).toBeDisabled()
++  })
++
++  it("reports a failed reversal (false) without claiming anything about the state, and allows a retry", async () => {
++    const onUndo = vi.fn(() => Promise.resolve(false))
++    const user = userEvent.setup()
++    render(<UndoNotice message="Done." detail="2 left." onUndo={onUndo} />)
++    await user.click(screen.getByRole("button", UNDO))
++    expect(await screen.findByText("Couldn't undo. Try again.")).toBeVisible()
++    expect(screen.queryByText(/Nothing changed/)).toBeNull()
++    await user.click(screen.getByRole("button", UNDO))
++    expect(onUndo).toHaveBeenCalledTimes(2)
++  })
++
++  it("admits uncertainty when the reversal rejects, and allows a retry", async () => {
++    const onUndo = vi.fn(() => Promise.reject(new Error("network")))
++    const user = userEvent.setup()
++    render(<UndoNotice message="Done." onUndo={onUndo} />)
++    await user.click(screen.getByRole("button", UNDO))
++    expect(await screen.findByText("Couldn't confirm Undo. Check the current state before trying again.")).toBeVisible()
++    expect(screen.queryByText(/Nothing changed/)).toBeNull()
++    await waitFor(() => expect(screen.getByRole("button", UNDO)).toBeEnabled())
++  })
++
++  it.each([[undefined], [null], ["yes"], [1]])("does not treat %p as success", async (value) => {
++    const user = userEvent.setup()
++    render(<UndoNotice message="Done." onUndo={(() => value) as unknown as () => boolean} />)
++    await user.click(screen.getByRole("button", UNDO))
++    expect(await screen.findByText("Couldn't undo. Try again.")).toBeVisible()
++    expect(screen.queryByRole("button", { name: "Undone" })).toBeNull()
++  })
++
++  it("keeps the consequence visible next to a failure, since the change is still in place", async () => {
++    const user = userEvent.setup()
++    render(<UndoNotice message="Done." detail="11 left to triage." onUndo={() => Promise.resolve(false)} />)
++    await user.click(screen.getByRole("button", UNDO))
++    expect(await screen.findByText("Couldn't undo. Try again.")).toBeVisible()
++    expect(screen.getByText("11 left to triage.")).toBeVisible()
++  })
++
++  it("does not leak one action's failure into the notice for the next action", async () => {
++    const user = userEvent.setup()
++    const { rerender } = render(<UndoNotice message="Fernhill Capital qualified." onUndo={() => Promise.resolve(false)} />)
++    await user.click(screen.getByRole("button", UNDO))
++    expect(await screen.findByText("Couldn't undo. Try again.")).toBeVisible()
++    rerender(<UndoNotice message="Kestrel Robotics moved to nurture." detail="10 left to triage." onUndo={() => true} />)
++    expect(screen.queryByText(/Couldn't/)).toBeNull()
++    expect(screen.getByText("10 left to triage.")).toBeVisible()
++    expect(screen.getByRole("button", UNDO)).toBeEnabled()
++  })
++
++  it("resets for a different action even when the message is identical, if actionId differs", async () => {
++    const user = userEvent.setup()
++    const { rerender } = render(<UndoNotice actionId={1} message="Saved." onUndo={() => Promise.resolve(false)} />)
++    await user.click(screen.getByRole("button", UNDO))
++    expect(await screen.findByText("Couldn't undo. Try again.")).toBeVisible()
++    rerender(<UndoNotice actionId={2} message="Saved." onUndo={() => true} />)
++    expect(screen.queryByText(/Couldn't/)).toBeNull()
++  })
++
++  it("a successful undo stays final for that action, and a new action gets a fresh, working Undo", async () => {
++    const user = userEvent.setup()
++    const { rerender } = render(<UndoNotice actionId={1} message="Saved." onUndo={() => true} />)
++    await user.click(screen.getByRole("button", UNDO))
++    expect(await screen.findByRole("button", { name: "Undone" })).toBeDisabled()
++    rerender(<UndoNotice actionId={2} message="Saved again." onUndo={() => true} />)
++    expect(screen.getByRole("button", UNDO)).toBeEnabled()
 +  })
 +})
 diff --git a/src/components/shared/undo-notice.tsx b/src/components/shared/undo-notice.tsx
 new file mode 100644
-index 0000000..a30dabf
+index 0000000..bc8b136
 --- /dev/null
 +++ b/src/components/shared/undo-notice.tsx
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,86 @@
 +import * as React from "react"
 +
 +import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -81,47 +137,75 @@ index 0000000..a30dabf
 +  /** The consequence worth knowing now, e.g. "11 left to triage." Keep it true to the data on screen. */
 +  detail?: React.ReactNode
 +  /**
-+   * Reverse the action and restore the exact prior state. May be async. Resolving to `false` or rejecting
-+   * means nothing was undone: the notice says so and keeps Undo available.
++   * Reverse the action. The result is a contract:
++   * - `true`: the prior state was successfully restored.
++   * - `false`: the reversal did not succeed.
++   * - a rejected promise: the outcome could not be confirmed.
++   * Anything other than `true` (including `undefined`) is NOT success.
++   * The owning feature removes or updates the notice after `true`.
 +   */
-+  onUndo: () => void | boolean | Promise<unknown>
++  onUndo: () => boolean | Promise<boolean>
++  /**
++   * Identifies the action this notice is about. A notice resets when `message` or `actionId` changes, so a
++   * failure from one action never shows on the next. Pass it when two different actions can produce the same message.
++   */
++  actionId?: string | number
 +  className?: string
 +}
 +
++type Phase = "idle" | "pending" | "undone" | "failed" | "unconfirmed"
++
++const FAILURE_TEXT = {
++  failed: "Couldn't undo. Try again.",
++  unconfirmed: "Couldn't confirm Undo. Check the current state before trying again.",
++} as const
++
 +/**
 + * Confirms that an action changed a record and lets the person reverse it.
-+ * Announced politely (role=status), stays until the caller replaces or removes it (it never auto-dismisses),
-+ * and its Undo is disabled while the reversal is in flight so it cannot fire twice.
++ * Announced politely (role=status) and never auto-dismisses. Undo cannot run twice at once, and after a
++ * successful Undo it cannot run again. It manages no record state: restoring it is the caller's job.
 + */
-+export function UndoNotice({ message, detail, onUndo, className }: UndoNoticeProps) {
-+  const [pending, setPending] = React.useState(false)
-+  const [failed, setFailed] = React.useState(false)
++export function UndoNotice(props: UndoNoticeProps) {
++  // remount per action: state (a failure, a finished undo, a lock) belongs to one action, never the next
++  return <UndoNoticeForAction key={`${props.actionId ?? ""}|${props.message}`} {...props} />
++}
++
++function UndoNoticeForAction({ message, detail, onUndo, className }: UndoNoticeProps) {
++  const [phase, setPhase] = React.useState<Phase>("idle")
++  // a ref, not state: a second click in the same tick must not start a second reversal
++  const locked = React.useRef(false)
 +
 +  async function undo() {
-+    setPending(true)
-+    setFailed(false)
++    if (locked.current) return
++    locked.current = true
++    setPhase("pending")
 +    try {
-+      const result = await onUndo()
-+      if (result === false) setFailed(true)
++      const restored = await onUndo()
++      if (restored === true) {
++        setPhase("undone") // stays locked: a successful Undo is final
++        return
++      }
++      setPhase("failed")
 +    } catch {
-+      setFailed(true)
-+    } finally {
-+      setPending(false)
++      setPhase("unconfirmed")
 +    }
++    locked.current = false
 +  }
 +
++  const failure = phase === "failed" || phase === "unconfirmed" ? FAILURE_TEXT[phase] : null
 +  return (
 +    <Alert role="status" className={className}>
 +      <Icon name="check" />
 +      <AlertTitle>{message}</AlertTitle>
-+      {(detail || failed) && (
++      {(failure || detail) && (
 +        <AlertDescription>
-+          {failed ? "Couldn't undo. Nothing changed; try again." : detail}
++          {detail && <span className="block">{detail}</span>}
++          {failure && <span className="block">{failure}</span>}
 +        </AlertDescription>
 +      )}
 +      <AlertAction>
-+        <Button size="sm" variant="outline" disabled={pending} onClick={() => void undo()}>
-+          {pending ? "Undoing…" : "Undo"}
++        <Button size="sm" variant="outline" disabled={phase === "pending" || phase === "undone"} onClick={() => void undo()}>
++          {phase === "pending" ? "Undoing…" : phase === "undone" ? "Undone" : "Undo"}
 +        </Button>
 +      </AlertAction>
 +    </Alert>
@@ -141,7 +225,7 @@ index 2da9062..e019ae8 100644
      return [] // the folder does not exist yet: nothing to document
    }
 diff --git a/src/ds/catalog.ts b/src/ds/catalog.ts
-index caac895..c7fd747 100644
+index 4cf0dfd..ea3b229 100644
 --- a/src/ds/catalog.ts
 +++ b/src/ds/catalog.ts
 @@ -9,7 +9,7 @@
@@ -153,7 +237,7 @@ index caac895..c7fd747 100644
  
  export interface CatalogEntry {
    id: string
-@@ -198,6 +198,29 @@ export const CATALOG: CatalogEntry[] = [
+@@ -195,6 +195,32 @@ export const CATALOG: CatalogEntry[] = [
      whenToUse: ["Every icon in product UI"],
      whenNotToUse: ["Carrying meaning without text"],
    },
@@ -165,17 +249,20 @@ index caac895..c7fd747 100644
 +    summary: "Confirms that an action changed a record and lets the person reverse it. Approved shared pattern.",
 +    behavior: [
 +      "props: message (what changed), detail (the consequence, e.g. a remaining count), onUndo",
-+      "Composes Alert and Button. Announced politely (role=status); never auto-dismisses; stays until the caller replaces or removes it",
-+      "onUndo must restore the exact prior state. It may be async. A rejection or a result of false shows \"Couldn't undo. Nothing changed; try again.\" and keeps Undo available",
-+      "Undo is disabled while the reversal is in flight, so it cannot fire twice",
-+      "It does not store or restore state: undo logic stays in the feature",
++      "Composes Alert and Button. Announced politely (role=status); never auto-dismisses",
++      "onUndo returns boolean | Promise<boolean>. true: the prior state was restored. false: the reversal did not succeed. A rejected promise: the outcome could not be confirmed. Anything else, including undefined, is not success",
++      "Failure wording is honest about uncertainty: false shows \"Couldn't undo. Try again.\"; a rejection shows \"Couldn't confirm Undo. Check the current state before trying again.\". Undo stays available after either",
++      "Undo cannot run twice at once, and after a successful Undo the button reads \"Undone\" and cannot run again",
++      "State belongs to one action: the notice resets when `message` or `actionId` changes, so a failure never carries over to the next action. Pass `actionId` when two actions can produce the same message",
++      "After a failed Undo the consequence in `detail` stays visible beside the failure, because the change is still in place",
++      "The owning feature removes or updates the notice after success, and restores the record itself: the component holds no record state and does not know your store",
 +    ],
 +    whenToUse: [
 +      "Right after an action that changes a record and that the person might want to take back (a decision, a status change, an assignment)",
-+      "Show it where the person is looking and keep the counts in `detail` true to the data on screen",
++      "Show it where the person is looking and keep `detail` true to the data on screen",
 +    ],
 +    whenNotToUse: [
-+      "Actions that cannot be reversed (use a confirmation before the action instead)",
++      "Actions that cannot be reversed (ask for confirmation before the action instead)",
 +      "Errors (use Alert with a Retry action)",
 +      "Passive information, or feedback that needs no way back",
 +    ],
@@ -183,31 +270,165 @@ index caac895..c7fd747 100644
    {
      id: "assistant",
      name: "Assistant (ambient layer)",
+diff --git a/src/ds/demos.test.tsx b/src/ds/demos.test.tsx
+new file mode 100644
+index 0000000..e57af56
+--- /dev/null
++++ b/src/ds/demos.test.tsx
+@@ -0,0 +1,46 @@
++import { render, screen, waitFor } from "@testing-library/react"
++import userEvent from "@testing-library/user-event"
++import { describe, expect, it } from "vitest"
++
++import { DEMOS } from "./demos"
++
++const UndoNoticeDemo = () => <>{DEMOS["undo-notice"]()}</>
++
++const statusBadge = () => screen.getByLabelText(/^Status:/)
++
++describe("UndoNotice demo (/ds)", () => {
++  it("changes a record, then genuinely restores it and removes the notice", async () => {
++    const user = userEvent.setup()
++    render(<UndoNoticeDemo />)
++    expect(statusBadge()).toHaveTextContent("New")
++    await user.click(screen.getByRole("button", { name: "Qualify lead" }))
++    expect(statusBadge()).toHaveTextContent("Qualified")
++    await user.click(screen.getByRole("button", { name: "Undo" }))
++    await waitFor(() => expect(statusBadge()).toHaveTextContent("New"))
++    expect(screen.queryByRole("status")).toBeNull() // the owner removed the notice
++    expect(screen.getByRole("button", { name: "Qualify lead" })).toBeEnabled()
++  })
++
++  it("keeps the change and says so when Undo returns false, then restores on a successful retry", async () => {
++    const user = userEvent.setup()
++    render(<UndoNoticeDemo />)
++    await user.click(screen.getByRole("checkbox", { name: /Undo fails/ }))
++    await user.click(screen.getByRole("button", { name: "Qualify lead" }))
++    await user.click(screen.getByRole("button", { name: "Undo" }))
++    expect(await screen.findByText("Couldn't undo. Try again.")).toBeVisible()
++    expect(statusBadge()).toHaveTextContent("Qualified")
++    await user.click(screen.getByRole("checkbox", { name: /Undo fails/ }))
++    await user.click(screen.getByRole("button", { name: "Undo" }))
++    await waitFor(() => expect(statusBadge()).toHaveTextContent("New"))
++  })
++
++  it("admits uncertainty when Undo rejects", async () => {
++    const user = userEvent.setup()
++    render(<UndoNoticeDemo />)
++    await user.click(screen.getByRole("checkbox", { name: /cannot be confirmed/ }))
++    await user.click(screen.getByRole("button", { name: "Qualify lead" }))
++    await user.click(screen.getByRole("button", { name: "Undo" }))
++    expect(await screen.findByText(/Couldn't confirm Undo\. Check the current state before trying again\./)).toBeVisible()
++    expect(statusBadge()).toHaveTextContent("Qualified")
++  })
++})
 diff --git a/src/ds/demos.tsx b/src/ds/demos.tsx
-index b80c1e7..fa3693e 100644
+index b80c1e7..dbde99f 100644
 --- a/src/ds/demos.tsx
 +++ b/src/ds/demos.tsx
-@@ -13,6 +13,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
+@@ -13,8 +13,10 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
  import { Skeleton } from "@/components/ui/skeleton"
  import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
  import { Textarea } from "@/components/ui/textarea"
-+import { UndoNotice } from "@/components/shared/undo-notice"
++import { UndoNoticeDemo } from "./undo-notice-demo"
  import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
  
++
  /** Live examples, keyed by catalog id. */
-@@ -132,5 +133,10 @@ export const DEMOS: Record<string, () => React.ReactNode> = {
+ export const DEMOS: Record<string, () => React.ReactNode> = {
+   button: () => (
+@@ -132,5 +134,6 @@ export const DEMOS: Record<string, () => React.ReactNode> = {
        ))}
      </div>
    ),
-+  "undo-notice": () => (
-+    <div className="max-w-md">
-+      <UndoNotice message="Northwind Freight qualified and assigned to you." detail="11 left to triage." onUndo={() => {}} />
-+    </div>
-+  ),
++  "undo-notice": () => <UndoNoticeDemo />,
    assistant: () => <p className="text-sm text-muted-foreground">Press ⌘K (Ctrl+K) to open it.</p>,
  }
+diff --git a/src/ds/undo-notice-demo.tsx b/src/ds/undo-notice-demo.tsx
+new file mode 100644
+index 0000000..6ecc8bf
+--- /dev/null
++++ b/src/ds/undo-notice-demo.tsx
+@@ -0,0 +1,77 @@
++import * as React from "react"
++
++import { UndoNotice } from "@/components/shared/undo-notice"
++import { Badge } from "@/components/ui/badge"
++import { Button } from "@/components/ui/button"
++import { Checkbox } from "@/components/ui/checkbox"
++
++type DemoStatus = "New" | "Qualified"
++
++/**
++ * A self-contained demonstration of UndoNotice. It owns a tiny record, changes it, and genuinely restores it:
++ * the component under demo knows nothing about this state. The demo plays the "owning feature": it removes the
++ * notice once Undo reports success.
++ */
++export function UndoNoticeDemo() {
++  const [status, setStatus] = React.useState<DemoStatus>("New")
++  const [notice, setNotice] = React.useState<{ id: number; previous: DemoStatus } | null>(null)
++  const [failUndo, setFailUndo] = React.useState(false)
++  const [rejectUndo, setRejectUndo] = React.useState(false)
++  const seq = React.useRef(0)
++  // the simulation switches, read at the moment Undo runs (refs updated from the handlers, not during render)
++  const sim = React.useRef({ failUndo: false, rejectUndo: false })
++
++  async function undo(previous: DemoStatus): Promise<boolean> {
++    await new Promise((r) => setTimeout(r, 400)) // behaves like a network call
++    if (sim.current.rejectUndo) throw new Error("connection lost")
++    if (sim.current.failUndo) return false
++    setStatus(previous) // genuinely restores the record
++    setNotice(null) // the owning feature removes the notice after success
++    return true
++  }
++
++  return (
++    <div className="grid max-w-md gap-3">
++      <div className="flex items-center justify-between gap-2 rounded-md border p-3 text-sm">
++        <span>
++          <span className="font-medium">Northwind Freight</span>
++          <span className="block text-xs text-muted-foreground">Demo request</span>
++        </span>
++        <Badge variant={status === "Qualified" ? "default" : "secondary"} aria-label={`Status: ${status}`}>
++          {status}
++        </Badge>
++      </div>
++      {notice ? (
++        <UndoNotice
++          actionId={notice.id}
++          message={`Northwind Freight qualified and assigned to you.`}
++          detail="11 left to triage."
++          onUndo={() => undo(notice.previous)}
++        />
++      ) : (
++        <div>
++          <Button
++            variant="outline"
++            disabled={status === "Qualified"}
++            onClick={() => {
++              setNotice({ id: ++seq.current, previous: status })
++              setStatus("Qualified")
++            }}
++          >
++            Qualify lead
++          </Button>
++        </div>
++      )}
++      <fieldset className="grid gap-1 text-xs text-muted-foreground">
++        <legend className="mb-1">Rehearse the outcomes of Undo</legend>
++        <label className="flex items-center gap-2">
++          <Checkbox checked={failUndo} onCheckedChange={(v) => { sim.current.failUndo = v === true; setFailUndo(v === true) }} /> Undo fails (returns false)
++        </label>
++        <label className="flex items-center gap-2">
++          <Checkbox checked={rejectUndo} onCheckedChange={(v) => { sim.current.rejectUndo = v === true; setRejectUndo(v === true) }} /> Undo cannot be confirmed (rejects)
++        </label>
++      </fieldset>
++    </div>
++  )
++}
++
 diff --git a/src/features/triage-queue/triage-queue.tsx b/src/features/triage-queue/triage-queue.tsx
-index d5837ae..9a30640 100644
+index bccb11d..8dd4012 100644
 --- a/src/features/triage-queue/triage-queue.tsx
 +++ b/src/features/triage-queue/triage-queue.tsx
 @@ -6,6 +6,7 @@
@@ -218,21 +439,24 @@ index d5837ae..9a30640 100644
  import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
  import { Button } from "@/components/ui/button"
  import { Card, CardContent } from "@/components/ui/card"
-@@ -79,10 +80,12 @@ export default function TriageQueue({ store: injected }: { store?: TriageStore }
+@@ -78,11 +79,13 @@ export default function TriageQueue({ store: injected }: { store?: TriageStore }
+     if (!isMobile) focusAfter.current = next?.id ?? null
    }
  
-   async function undo(entry: LogEntry) {
+-  async function undo(entry: LogEntry) {
 -    await store.undo(entry.id)
-+    const ok = await store.undo(entry.id)
-+    if (!ok) return false
-     setBanner(null)
+-    setBanner(null)
++  async function undo(entry: LogEntry): Promise<boolean> {
++    const restored = await store.undo(entry.id)
++    if (!restored) return false
++    setBanner(null) // the owning feature removes the notice once the prior state is back
      setSelectedId(entry.before.id)
      setFilter("open")
 +    return true
    }
  
    function onListKeyDown(e: React.KeyboardEvent) {
-@@ -109,16 +112,11 @@ export default function TriageQueue({ store: injected }: { store?: TriageStore }
+@@ -109,16 +112,12 @@ export default function TriageQueue({ store: injected }: { store?: TriageStore }
        </div>
  
        {banner && (
@@ -247,6 +471,7 @@ index d5837ae..9a30640 100644
 -          </AlertAction>
 -        </Alert>
 +        <UndoNotice
++          actionId={banner.id}
 +          message={banner.message}
 +          detail={open.length ? `${open.length} left to triage.` : "The queue is clear."}
 +          onUndo={() => undo(banner)}
@@ -255,7 +480,7 @@ index d5837ae..9a30640 100644
  
        {load === "error" ? (
 diff --git a/src/lib/ambient/stubs/ds.ts b/src/lib/ambient/stubs/ds.ts
-index 70f265a..5fec97f 100644
+index 70f265a..ca76b9a 100644
 --- a/src/lib/ambient/stubs/ds.ts
 +++ b/src/lib/ambient/stubs/ds.ts
 @@ -19,6 +19,15 @@ export const ds = page([
@@ -266,7 +491,7 @@ index 70f265a..5fec97f 100644
 +    ask: "Which shared patterns has a person approved?",
 +    match: /approved|shared (pattern|component)|promot/i,
 +    answer: () => ({
-+      text: "UndoNotice (src/components/shared/undo-notice.tsx): confirms that an action changed a record and lets the person reverse it. See its entry in the Components tab, and docs/DECISION-LOG.md for why it was approved.",
++      text: "UndoNotice (src/components/shared/undo-notice.tsx) confirms that an action changed a record and lets the person reverse it. See its entry in the Components tab and docs/DECISION-LOG.md.",
 +      refs: [],
 +      followUps: ["Who reviews changes to the system?"],
 +    }),

@@ -1,3 +1,9 @@
+> **Revision 2** (after the governance-skill review, `docs/GOVERN-SKILL-AUDIT.md`). `undo-notice.patch` now contains
+> revision 2: the notice resets state per action (`message` or `actionId`); the consequence stays visible beside a
+> failure; `onUndo` returns `boolean | Promise<boolean>` (only `true` is success; a rejection is "could not confirm");
+> after success Undo is final; the `/ds` demo changes and restores a real local record. 46 tests, `audit:ds`, browser
+> check. Sections below describe revision 1 where they differ (props, file sizes, test counts). **Not applied.**
+
 # Promotion proposal: `UndoNotice`: NOT applied, awaiting approval
 
 ## The problem it solves

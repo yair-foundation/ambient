@@ -23,13 +23,13 @@ If none fits, re-frame the use case first (most "new surfaces" are a rail entry
 or a sheet in disguise). Only then escalate: propose evolving a standard via the
 pattern watchlist protocol in `.claude/ambientui/CLAUDE.md` — never a silent one-off.
 
-## UX heuristics applied to ambientui
+## UX heuristics applied to ClientOps
 
 - **One primary action per view**; destructive actions restate their consequence.
 - **The ambient layer is ambient**: pages declare context (`setPageChip`);
   the user never re-explains where they are. If a new page forgets its chip,
   the feature is incomplete.
-- **Progressive disclosure**: canvas → spotlight → panel → dock is an
+- **Progressive disclosure**: page → spotlight → panel → dock is an
   escalation of commitment; don't jump a casual question into a docked rail.
 - **Consistency beats novelty**: whoever learned one triage screen must
   already know how the next one reports status, blockers and results.

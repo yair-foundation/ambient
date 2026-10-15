@@ -77,7 +77,7 @@ governance. (DESIGN.md §2, with the Linear precedent.)
    replaces the host's stubs, never the objects. On a product that runs a
    chat stack (Vercel AI SDK, assistant-ui, CopilotKit) the layer is the
    surface and the stack stays the engine, connected through an adapter
-   (`stack-*.ts`, `docs/chat-stacks.md`); the product's own tool components
+   (`stack-*.ts`, upstream `docs/chat-stacks.md`, not installed here; ClientOps has no chat stack); the product's own tool components
    render inside the layer's frame, and approvals are asked in the
    transcript. **One character per surface**: the
    orb/OrbCharacter mark belongs in the row where the user speaks to the

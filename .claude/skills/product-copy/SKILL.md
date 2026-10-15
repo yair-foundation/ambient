@@ -61,6 +61,7 @@ the vocabulary").
 - **Lead** = an incoming prospect not yet qualified. **Account** = an existing customer record. Never swap them.
 - **Triage** = deciding what to do with a lead. The decisions are **Qualify**, **Request info**, **Nurture** and **Disqualify**.
 - **Ready / Needs info / Blocked** are a lead's readiness. A **gap** is missing qualification information (team size, budget, timeline); a **blocker** stops qualification until resolved (possible duplicate account, unsupported region).
+- **Undo** reverses the last decision and restores the previous state. After a success the control reads "Undone". When Undo fails, say it failed and what to do ("Couldn't undo. Try again."); when the outcome is unknown, say so and point to the current state, never claim the data is unchanged.
 - **First response** = the first reply a lead receives; its target is the **SLA** shown as "Due in 3h" / "Overdue by 2h".
 - **Foundation** = the global design config (accent, gray, radius, spacing, scaling, motion). Not "theme settings".
 - **Vocabulary** = the components an agent may compose from; see `src/ds/catalog.ts`.

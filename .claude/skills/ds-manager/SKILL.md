@@ -29,7 +29,7 @@ scaling) — or into a governance proposal if the config can't reach it.
 1. **Tokens**: grep the change for hex colors, raw `--color-*` palette
    steps, arbitrary values (`p-[10px]`, `text-[13px]`), raw px radii.
    Anything not a semantic role, a Tailwind scale utility, or a
-   `--radius`-derived step fails (outside foundation-context, which
+   `--radius`-derived step fails (outside `src/lib/foundation/tokens.ts`, which
    defines the role → palette mapping).
 2. **Components**: does it compose vocabulary components, or re-implement one?
    Near-misses (a button-like div, a hand-rolled menu) fail. Check the gap list in `src/ds/catalog.ts` (`GAPS`): no Select, Switch,

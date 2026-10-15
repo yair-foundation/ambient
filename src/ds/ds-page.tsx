@@ -121,6 +121,7 @@ function Foundation() {
 function Components() {
   return (
     <div className="grid gap-4">
+      <h2 className="sr-only">Component registry</h2>
       <Alert>
         <AlertTitle>Known gaps</AlertTitle>
         <AlertDescription>
@@ -162,7 +163,7 @@ function Components() {
 function ListBlock({ title, items }: { title: string; items: string[] }) {
   return (
     <div>
-      <h4 className="mb-1 text-xs font-medium text-muted-foreground">{title}</h4>
+      <h3 className="mb-1 text-xs font-medium text-muted-foreground">{title}</h3>
       <ul className="list-disc space-y-1 pl-4">
         {items.map((i) => (
           <li key={i}>{i}</li>

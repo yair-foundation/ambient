@@ -11,6 +11,7 @@ Rejected directions are recorded so they are not rebuilt as standards.
 | 2026-10-15 | **Direction A (queue workspace) approved** as the lead-triage experience at `/triage`. Direction B (guided review) rejected and kept inert in `docs/rejected/direction-b/`. | A person's decision after reviewing both working directions. A gives overview, direct jumping and keyboard speed; B hid the queue and could not be reordered. Findings from B were kept or rejected explicitly (see its README). |
 | 2026-10-15 | Queue order is a product assumption: overdue first, highest value first among them, then soonest deadline. | See `docs/PRODUCT-ASSUMPTIONS.md`, including the starvation risk to validate. |
 | 2026-10-15 | Approved and applied: destructive-variant contrast fix. Badge `destructive`, Button `destructive` and Alert `destructive` description no longer put red text on a red tint: outlined with `text-destructive` on the plain surface. Hover and focus are shown by the border going to full strength. No Foundation token changed. | Approved by the product owner (the person running this project) on 2026-10-15. Measured with axe on the live `/ds` page: Badge and Button were 3.85:1 light and 4.36:1 dark, Alert description 4.49:1 light (AA needs 4.5:1). After: 4.6 to 4.77:1 light and 6.1 to 6.4:1 dark at rest, hover and focus. Hover first used a grey fill (`hover:bg-muted`), which measured 4.35:1, so it was changed to a border emphasis. Disabled controls keep the base 50% opacity. Unresolved related issues: `docs/KNOWN-DS-ISSUES.md`. |
+| 2026-10-15 | Governance review of the `UndoNotice` proposal using the three skills (invoked, not just read). Recommendation: **Promote, conditional** on revision 2. Not promoted. | The review found a defect the first version had (a failed Undo leaked into the next action's notice), so revision 2 resets state per action and keeps the consequence visible. Strict reading of the promote test (two existing surfaces) would be Keep Local; promotion rests on plausible recurrence. Evidence: `docs/GOVERN-SKILL-AUDIT.md`. |
 
 ## Watchlist
 
@@ -18,4 +19,5 @@ Patterns spotted but not yet ruled on. Triage through the pattern watchlist prot
 
 - Master-detail list pane with a sheet on phones, and j/k queue keyboard navigation (lead triage; one surface).
 - Loading, empty and error states with Retry (lead triage; one surface).
+- Selectable list row (a native `<button>` styled as a card, used by the lead queue; flagged by `npm run audit:ds`). One surface.
 - Tabs cannot wrap on phones without an `h-auto` override (note for the registry).

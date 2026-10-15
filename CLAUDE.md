@@ -13,7 +13,7 @@ feature: help an account manager triage incoming leads and decide what to do nex
    approved pattern over building a new one. Look in `src/components/shared/` for approved shared components.
 4. The token and propagation rules live in `.claude/skills/ambientui-start/DESIGN.md`.
 
-Review work with the skills `ds-manager`, `product-design-manager` and `product-copy` (`.claude/skills/`).
+Review UI work by **invoking** the skills `ds-manager`, `product-design-manager` and `product-copy` (`.claude/skills/`) with the Skill tool, not by reading them. `npm run gate` runs `audit:ds`, the mechanical part of the `ds-manager` compliance audit (tokens, icons, motion, near-miss components, assistant page stubs). Record the outcome of any pattern review in `docs/DECISION-LOG.md`.
 
 ## Rules that need a person
 
