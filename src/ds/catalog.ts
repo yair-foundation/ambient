@@ -42,6 +42,7 @@ export const CATALOG: CatalogEntry[] = [
     behavior: [
       "variants: default (the single primary action), secondary, outline, ghost, destructive, link",
       "sizes: xs, sm, default, lg, icon, icon-xs, icon-sm, icon-lg",
+      "KNOWN ISSUE: variant=destructive has the same red-on-red-tint recipe as Badge (3.85:1 light, 4.36:1 dark, below WCAG AA). Until fixed (docs/proposals/ds-bug-fixes.md), use variant=outline with className border-destructive/40 text-destructive",
       "states: hover, focus-visible ring, active, disabled (pointer-events off), aria-invalid",
       "icon-only buttons must carry an aria-label",
     ],
@@ -57,7 +58,7 @@ export const CATALOG: CatalogEntry[] = [
     behavior: [
       "variants: default, secondary, outline, destructive, ghost, link",
       "Not interactive unless rendered as a link; never the only carrier of meaning: pair color with text",
-      "KNOWN ISSUE: variant=destructive (red text on a red tint) measures 4.49:1 at text-xs, just under WCAG AA. Until the system fixes it, use variant=outline with the destructive text role and an icon for blocked or failed status (see ReadinessBadge in src/features/triage/parts.tsx)",
+      "KNOWN ISSUE: variant=destructive (red text on a red tint) measures 3.85:1 in light and 4.36:1 in dark, below WCAG AA (4.5:1). Until the system fixes it (docs/proposals/ds-bug-fixes.md), use variant=outline with the destructive text role and an icon for blocked or failed status (see ReadinessBadge in src/features/triage/parts.tsx)",
     ],
     whenToUse: ["Status (Ready, Blocked), counts, category tags"],
     whenNotToUse: ["Actions (use Button)", "Long text"],
