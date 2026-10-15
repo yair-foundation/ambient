@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "surveyedAt": "2026-10-15T04:22:39.637Z",
-  "surveyMs": 178,
+  "surveyedAt": "2026-10-15T04:23:01.044Z",
+  "surveyMs": 199,
   "repo": {
     "gitRoot": ".",
     "isGit": true,
@@ -47,7 +47,7 @@
   },
   "git": {
     "isRepo": true,
-    "head": "d8c4f6bc40f7694aa0f3a02debb46e9a16793fee",
+    "head": "f4b72ce8d4c79f5126362192058f801e7d45b860",
     "branch": "claude/nice-pascal-yc0t0k",
     "clean": true,
     "dirty": [],
@@ -690,14 +690,14 @@
     }
   },
   "baseline": {
-    "takenAt": "2026-10-15T04:22:39.638Z",
+    "takenAt": "2026-10-15T04:23:01.045Z",
     "checks": [
       {
         "id": "typecheck",
         "command": "npx tsc --noEmit -p tsconfig.app.json",
         "code": 0,
         "timedOut": false,
-        "ms": 1429,
+        "ms": 1274,
         "tail": ""
       },
       {
@@ -705,16 +705,16 @@
         "command": "npm run lint",
         "code": 0,
         "timedOut": false,
-        "ms": 340,
+        "ms": 281,
         "tail": "> ambient@0.0.0 lint\n> oxlint\n\nsrc/components/ui/button.tsx:57:18: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components."
       },
       {
         "id": "build",
         "command": "npm run build",
-        "code": 1,
+        "code": 0,
         "timedOut": false,
-        "ms": 2630,
-        "tail": " \u001b[38;5;240m  │\u001b[0m         - src/App.tsx\n \u001b[38;5;240m  │\u001b[0m         - src/main.tsx\n \u001b[38;5;240m  │\u001b[0m         - index.html\n\u001b[38;5;246m───╯\u001b[0m\n\n\u001b[31m[UNRESOLVED_IMPORT] \u001b[0mCould not resolve './assets/vite.svg' in src/App.tsx\n   \u001b[38;5;246m╭\u001b[0m\u001b[38;5;246m─\u001b[0m\u001b[38;5;246m[\u001b[0m src/App.tsx:4:22 \u001b[38;5;246m]\u001b[0m\n   \u001b[38;5;246m│\u001b[0m\n \u001b[38;5;246m4 │\u001b[0m \u001b[38;5;249mi\u001b[0m\u001b[38;5;249mm\u001b[0m\u001b[38;5;249mp\u001b[0m\u001b[38;5;249mo\u001b[0m\u001b[38;5;249mr\u001b[0m\u001b[38;5;249mt\u001b[0m\u001b[38;5;249m \u001b[0m\u001b[38;5;249mv\u001b[0m\u001b[38;5;249mi\u001b[0m\u001b[38;5;249mt\u001b[0m\u001b[38;5;249me\u001b[0m\u001b[38;5;249mL\u001b[0m\u001b[38;5;249mo\u001b[0m\u001b[38;5;249mg\u001b[0m\u001b[38;5;249mo\u001b[0m\u001b[38;5;249m \u001b[0m\u001b[38;5;249mf\u001b[0m\u001b[38;5;249mr\u001b[0m\u001b[38;5;249mo\u001b[0m\u001b[38;5;249mm\u001b[0m\u001b[38;5;249m \u001b[0m\"./assets/vite.svg\"\u001b[38;5;249m;\u001b[0m\n \u001b[38;5;240m  │\u001b[0m                      ─────────┬─────────  \n \u001b[38;5;240m  │\u001b[0m                               ╰─────────── Module not found.\n \u001b[38;5;240m  │\u001b[0m \n \u001b[38;5;240m  │\u001b[0m \u001b[38;5;115mHelp\u001b[0m: 'src/App.tsx' is imported by the following path:\n \u001b[38;5;240m  │\u001b[0m         - src/App.tsx\n \u001b[38;5;240m  │\u001b[0m         - src/main.tsx\n \u001b[38;5;240m  │\u001b[0m         - index.html\n\u001b[38;5;246m───╯\u001b[0m\n\n\u001b[31m[UNRESOLVED_IMPORT] \u001b[0mCould not resolve './App.css' in src/App.tsx\n   \u001b[38;5;246m╭\u001b[0m\u001b[38;5;246m─\u001b[0m\u001b[38;5;246m[\u001b[0m src/App.tsx:5:8 \u001b[38;5;246m]\u001b[0m\n   \u001b[38;5;246m│\u001b[0m\n \u001b[38;5;246m5 │\u001b[0m \u001b[38;5;249mi\u001b[0m\u001b[38;5;249mm\u001b[0m\u001b[38;5;249mp\u001b[0m\u001b[38;5;249mo\u001b[0m\u001b[38;5;249mr\u001b[0m\u001b[38;5;249mt\u001b[0m\u001b[38;5;249m \u001b[0m\"./App.css\"\u001b[38;5;249m;\u001b[0m\n \u001b[38;5;240m  │\u001b[0m        ─────┬─────  \n \u001b[38;5;240m  │\u001b[0m             ╰─────── Module not found.\n \u001b[38;5;240m  │\u001b[0m \n \u001b[38;5;240m  │\u001b[0m \u001b[38;5;115mHelp\u001b[0m: 'src/App.tsx' is imported by the following path:\n \u001b[38;5;240m  │\u001b[0m         - src/App.tsx\n \u001b[38;5;240m  │\u001b[0m         - src/main.tsx\n \u001b[38;5;240m  │\u001b[0m         - index.html\n\u001b[38;5;246m───╯\u001b[0m\n\u001b[31m\n    at aggregateBindingErrorsIntoJsError (file:///home/user/ambient/node_modules/rolldown/dist/shared/error-CBG33oNV.mjs:49:18)\n    at unwrapBindingResult (file:///home/user/ambient/node_modules/rolldown/dist/shared/error-CBG33oNV.mjs:19:128)\n    at #build (file:///home/user/ambient/node_modules/rolldown/dist/shared/rolldown-BYX6bV3R.mjs:146:34)\n    at async buildEnvironment (file:///home/user/ambient/node_modules/vite/dist/node/chunks/node.js:34716:66)\n    at async Object.build (file:///home/user/ambient/node_modules/vite/dist/node/chunks/node.js:35137:19)\n    at async Object.buildApp (file:///home/user/ambient/node_modules/vite/dist/node/chunks/node.js:35134:153)\n    at async CAC.<anonymous> (file:///home/user/ambient/node_modules/vite/dist/node/cli.js:780:3) {\n  errors: [Getter/Setter]\n}\u001b[39m"
+        "ms": 2682,
+        "tail": "> ambient@0.0.0 build\n> tsc -b && vite build\n\n\u001b[36mvite v8.3.4 \u001b[32mbuilding client environment for production...\u001b[36m\u001b[39m\ntransforming...\n✓ 16 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                                              0.45 kB │ gzip:  0.29 kB\ndist/assets/geist-cyrillic-ext-wght-normal-DjL33-gN.woff2    7.42 kB\ndist/assets/geist-vietnamese-wght-normal-6IgcOCM7.woff2      8.00 kB\ndist/assets/geist-cyrillic-wght-normal-BEAKL7Jp.woff2       15.08 kB\ndist/assets/geist-latin-ext-wght-normal-DC-KSUi6.woff2      16.51 kB\ndist/assets/geist-latin-wght-normal-BgDaEnEv.woff2          29.40 kB\ndist/assets/index-D7wzkGkb.css                              23.76 kB │ gzip:  5.01 kB\ndist/assets/index-BrsOmOdo.js                              219.57 kB │ gzip: 68.60 kB\n\n\u001b[32m✓ built in 480ms\u001b[39m"
       }
     ]
   }
