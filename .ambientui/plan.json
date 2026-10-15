@@ -1,0 +1,174 @@
+{
+  "schema": 1,
+  "path": "full",
+  "answers": {
+    "path": "full",
+    "look": "reference"
+  },
+  "decisions": [
+    {
+      "id": "path",
+      "chosen": "full",
+      "options": [
+        {
+          "value": "layer",
+          "label": "the ambient layer only: the assistant above the product's screens, which stay exactly as they are"
+        },
+        {
+          "value": "full",
+          "label": "the full design architecture: the Foundation also governs tokens, spacing, radius and motion"
+        }
+      ],
+      "why": "A new project: nothing to preserve, so the whole system goes in.",
+      "source": "doctor"
+    },
+    {
+      "id": "look",
+      "chosen": "reference",
+      "options": [
+        {
+          "value": "current",
+          "label": "keep the product's current look"
+        },
+        {
+          "value": "reference",
+          "label": "express a reference (a screenshot, a link, a few words)"
+        }
+      ],
+      "why": "A new project: the look comes from whatever the person described in their request, else the Foundation's defaults.",
+      "source": "doctor"
+    }
+  ],
+  "appDir": ".",
+  "appDirFromRoot": ".",
+  "srcRoot": "src",
+  "packageManager": {
+    "name": "npm",
+    "version": "10.9.4",
+    "invoke": "npm",
+    "onPath": true,
+    "installCmd": "npm install"
+  },
+  "runner": "npx",
+  "registry": "https://registry.ambientui.ai",
+  "requiredSteps": [],
+  "doors": [
+    "start",
+    "foundation",
+    "ambient-layer",
+    "foundation-ambient-bridge",
+    "governance"
+  ],
+  "commands": [
+    {
+      "cwd": ".",
+      "run": "npx shadcn@latest registry add \"@ambientui=https://registry.ambientui.ai/r/{name}.json\""
+    },
+    {
+      "cwd": ".",
+      "door": "start",
+      "run": "npx shadcn@latest add @ambientui/start --yes --overwrite"
+    },
+    {
+      "cwd": ".",
+      "door": "foundation",
+      "run": "npx shadcn@latest add @ambientui/foundation --yes --overwrite"
+    },
+    {
+      "cwd": ".",
+      "door": "ambient-layer",
+      "run": "npx shadcn@latest add @ambientui/ambient-layer --yes --overwrite"
+    },
+    {
+      "cwd": ".",
+      "door": "foundation-ambient-bridge",
+      "run": "npx shadcn@latest add @ambientui/foundation-ambient-bridge --yes --overwrite"
+    },
+    {
+      "cwd": ".",
+      "door": "governance",
+      "run": "npx shadcn@latest add @ambientui/governance --yes --overwrite"
+    }
+  ],
+  "css": {
+    "mode": "v4-import",
+    "entry": "src/index.css",
+    "lines": [
+      "@import \"tailwindcss\" theme(static);",
+      "@import \"./styles/foundation.css\";",
+      "@import \"./styles/ambient.css\";"
+    ],
+    "where": "in src/index.css: replace the existing `@import \"tailwindcss\";` with the first line, the other two right after it",
+    "why": "theme(static) keeps every Tailwind variable emitted so the Foundation bridge can route through them."
+  },
+  "staticDir": "public",
+  "adapt": [
+    {
+      "id": "strip-use-client",
+      "dir": "src/components/ambient",
+      "newIn": "src/components/ui",
+      "why": "vite is not a React Server Components app, so the layer's \"use client\" directives only print a bundler warning per file"
+    }
+  ],
+  "envFlag": {
+    "name": "VITE_AMBIENT_STUBS",
+    "read": "import.meta.env.VITE_AMBIENT_STUBS",
+    "expression": "import.meta.env.VITE_AMBIENT_STUBS !== \"false\"",
+    "default": "stubs on unless the flag is \"false\""
+  },
+  "aliasEdits": [],
+  "provider": {
+    "productName": "Ambient",
+    "hotkey": "mod+k",
+    "dark": "html-class"
+  },
+  "mount": {
+    "file": "src/App.tsx",
+    "lazy": false,
+    "importFrom": "@/components/ambient/assistant",
+    "layerDir": "src/components/ambient"
+  },
+  "transport": {
+    "kind": "none",
+    "guidance": "No API layer found: use the default src/lib/ambient/api.ts from start.md (stubs by default)."
+  },
+  "tests": {
+    "runner": null,
+    "stubTestPath": null,
+    "mocks": []
+  },
+  "lint": {
+    "exclude": [
+      "src/components/ambient/**"
+    ],
+    "targets": [
+      {
+        "tool": "oxlint",
+        "file": ".oxlintrc.json",
+        "key": "ignorePatterns"
+      }
+    ]
+  },
+  "naming": {
+    "convention": "kebab-case",
+    "note": "vendored files keep kebab-case; tell the owner"
+  },
+  "i18n": null,
+  "hotkey": {
+    "answer": null,
+    "owners": []
+  },
+  "governance": {
+    "install": true,
+    "rules": ".claude/ambientui/CLAUDE.md",
+    "pointer": null
+  },
+  "warnings": [
+    "The full path keeps all five icon libraries (the Foundation switches between them live; Remix is the heaviest); if bundle size matters, lazy-load Assistant (see mount.snippet shape).",
+    "The Foundation replaces the palette: host tests or visual baselines that assert the old colours will need updating.",
+    "The product depends on the `cn` npm package; the layer's `cn` comes from @/lib/utils (clsx + tailwind-merge). Do not swap one for the other."
+  ],
+  "blockers": [],
+  "overrides": [],
+  "given": {}
+}

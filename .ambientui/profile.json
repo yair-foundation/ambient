@@ -1,0 +1,721 @@
+{
+  "schema": 1,
+  "surveyedAt": "2026-10-15T04:22:26.601Z",
+  "surveyMs": 186,
+  "repo": {
+    "gitRoot": ".",
+    "isGit": true,
+    "monorepo": null,
+    "parentMonorepo": null,
+    "workspaces": [],
+    "appDir": ".",
+    "appCandidates": [
+      {
+        "dir": ".",
+        "framework": "vite",
+        "configFile": "vite.config.ts",
+        "name": "ambient",
+        "uiFiles": 3
+      }
+    ],
+    "alternatives": [],
+    "appDirFromRoot": ".",
+    "related": [],
+    "filesScanned": {
+      "code": 4,
+      "css": 1,
+      "truncated": false
+    }
+  },
+  "packageManager": {
+    "name": "npm",
+    "version": "10.9.4",
+    "berry": false,
+    "lockfile": "package-lock.json",
+    "yarnPath": null,
+    "onPath": true,
+    "installedVersion": "10.9.4",
+    "invoke": "npm",
+    "runner": "npx",
+    "installCmd": "npm install",
+    "runPrefix": "npm run"
+  },
+  "deps": {
+    "convention": "dependencies",
+    "dependencies": 11,
+    "devDependencies": 7
+  },
+  "git": {
+    "isRepo": true,
+    "head": "badd0516f008d903baa388b0a581860d5034f1fc",
+    "branch": "claude/nice-pascal-yc0t0k",
+    "clean": true,
+    "dirty": [],
+    "dirtyCount": 0,
+    "ignored": {
+      ".claude": false,
+      ".ambientui": false
+    }
+  },
+  "framework": {
+    "name": "vite",
+    "configFile": "vite.config.ts",
+    "router": null,
+    "rsc": false
+  },
+  "entry": {
+    "file": "src/main.tsx",
+    "rootComponent": "src/App.tsx"
+  },
+  "react": {
+    "version": "19.3.1",
+    "major": 19,
+    "source": "installed",
+    "typesMajor": 19
+  },
+  "typescript": {
+    "present": true,
+    "version": "6.0.3",
+    "tsconfig": "tsconfig.app.json",
+    "strict": false
+  },
+  "moduleType": "esm",
+  "jest": {
+    "present": false
+  },
+  "styling": {
+    "tailwind": {
+      "version": "4.3.3",
+      "major": 4,
+      "minor": 3,
+      "source": "installed",
+      "declared": "^4.3.3",
+      "config": null,
+      "plugin": "@tailwindcss/vite"
+    },
+    "entry": "src/index.css",
+    "directive": {
+      "kind": "v4-import",
+      "line": 1,
+      "text": "@import \"tailwindcss\";"
+    },
+    "preflight": true,
+    "importedByEntry": [
+      "src/index.css"
+    ],
+    "tailwindCssFiles": [
+      "src/index.css"
+    ],
+    "cssInJs": [],
+    "scss": {
+      "files": 0,
+      "dep": false
+    },
+    "cssModules": 0,
+    "otherTailwindConsumers": []
+  },
+  "tokens": {
+    "format": "color",
+    "present": [
+      "background",
+      "foreground",
+      "card",
+      "card-foreground",
+      "popover",
+      "popover-foreground",
+      "primary",
+      "primary-foreground",
+      "secondary",
+      "secondary-foreground",
+      "muted",
+      "muted-foreground",
+      "accent",
+      "accent-foreground",
+      "destructive",
+      "border",
+      "input",
+      "ring"
+    ],
+    "missing": [],
+    "sample": {
+      "file": "src/index.css",
+      "line": 56,
+      "value": "oklch(1 0 0)",
+      "kind": "color"
+    },
+    "primary": {
+      "file": "src/index.css",
+      "line": 58,
+      "value": "oklch(0.205 0 0)",
+      "kind": "color"
+    },
+    "files": [
+      "src/index.css"
+    ]
+  },
+  "shadcn": {
+    "componentsJson": "components.json",
+    "style": "base-nova",
+    "iconLibrary": "lucide",
+    "tailwindConfig": "",
+    "tailwindCss": "src/index.css",
+    "aliases": {
+      "components": "@/components",
+      "utils": "@/lib/utils",
+      "ui": "@/components/ui",
+      "lib": "@/lib",
+      "hooks": "@/hooks"
+    },
+    "registries": {},
+    "uiDir": "src/components/ui",
+    "uiDirExists": true,
+    "uiFiles": [
+      "src/components/ui/button.tsx"
+    ],
+    "primitives": {
+      "button": {
+        "file": "src/components/ui/button.tsx",
+        "iconSm": true,
+        "iconXs": true
+      },
+      "input": null,
+      "skeleton": null,
+      "sidebar": null,
+      "sheet": null,
+      "tooltip": null,
+      "separator": null
+    },
+    "utils": {
+      "file": "src/lib/utils.ts",
+      "alias": "@/lib/utils",
+      "definesCn": true
+    },
+    "cnPackage": true
+  },
+  "aliases": {
+    "tsconfigs": [
+      {
+        "file": "tsconfig.app.json",
+        "hasAt": true,
+        "target": "src",
+        "solution": false,
+        "node": false
+      },
+      {
+        "file": "tsconfig.json",
+        "hasAt": true,
+        "target": "src",
+        "solution": true,
+        "node": false
+      }
+    ],
+    "bundler": {
+      "kind": "vite",
+      "file": "vite.config.ts",
+      "hasAt": true,
+      "via": "alias"
+    },
+    "test": null,
+    "subpathImports": false,
+    "subpathImportCount": 0,
+    "forbidsAt": [],
+    "srcRoot": "src",
+    "atResolves": true
+  },
+  "env": {
+    "allowedPrefix": "VITE_",
+    "prefix": "VITE_",
+    "style": "import.meta.env",
+    "envDir": null,
+    "definePluginKeys": null,
+    "stubFlag": "VITE_AMBIENT_STUBS",
+    "read": "import.meta.env.VITE_AMBIENT_STUBS",
+    "alreadyDefined": false,
+    "usedNames": []
+  },
+  "staticDir": "public",
+  "bundle": {
+    "pwa": null,
+    "precacheLimit": null,
+    "coep": null,
+    "coop": null
+  },
+  "componentLibrary": [
+    "base-ui"
+  ],
+  "icons": [
+    {
+      "id": "lucide",
+      "pkg": "lucide-react",
+      "version": "1.57.0",
+      "legacyNames": false
+    }
+  ],
+  "naming": {
+    "convention": "kebab-case",
+    "pascal": 0,
+    "kebab": 1
+  },
+  "darkMode": {
+    "mechanism": "html-class",
+    "signal": {
+      "kind": "html-class",
+      "file": "src/index.css",
+      "line": 6,
+      "note": "@custom-variant dark (&:is(.dark"
+    },
+    "signals": [
+      {
+        "kind": "html-class",
+        "file": "src/index.css",
+        "line": 6,
+        "note": "@custom-variant dark (&:is(.dark"
+      }
+    ]
+  },
+  "hotkeys": {
+    "owners": [],
+    "conflict": false,
+    "features": []
+  },
+  "zIndex": {
+    "max": null,
+    "maxAt": null,
+    "modal": null,
+    "modalAt": null,
+    "modalNamed": false,
+    "nonModalMax": null,
+    "outliers": [],
+    "count": 0
+  },
+  "fixedBottom": [],
+  "i18n": null,
+  "network": {
+    "clients": [],
+    "wrapper": null,
+    "wrappers": [],
+    "helper": null,
+    "serviceDir": null,
+    "transports": [],
+    "auth": {
+      "credentialsInclude": null,
+      "csrf": null,
+      "bearer": null,
+      "on401": null,
+      "basePath": null
+    }
+  },
+  "ai": {
+    "kind": "none",
+    "sdk": [],
+    "provider": [],
+    "envNames": [],
+    "routes": [],
+    "stack": null
+  },
+  "tests": {
+    "runners": [],
+    "scripts": [],
+    "vrt": null
+  },
+  "lint": {
+    "eslint": null,
+    "reactHooks": false,
+    "oxlint": {
+      "config": ".oxlintrc.json"
+    },
+    "biome": null,
+    "prettier": null,
+    "oxfmt": null,
+    "checkerOverlay": false,
+    "agentHooks": []
+  },
+  "agent": {
+    "claudeMd": false,
+    "agentsMd": false,
+    "designMd": false,
+    "claudeSkills": false,
+    "agentsSkills": false
+  },
+  "product": {
+    "name": "Ambient",
+    "candidates": [
+      {
+        "value": "ambient",
+        "kind": "title",
+        "file": "index.html"
+      },
+      {
+        "value": "Ambient",
+        "kind": "package",
+        "file": "package.json"
+      }
+    ]
+  },
+  "scripts": {
+    "all": [
+      "dev",
+      "build",
+      "lint",
+      "preview"
+    ],
+    "typecheck": null,
+    "lint": {
+      "name": "lint",
+      "command": "oxlint",
+      "where": "app"
+    },
+    "test": null,
+    "build": {
+      "name": "build",
+      "command": "tsc -b && vite build",
+      "where": "app"
+    },
+    "dev": {
+      "name": "dev",
+      "command": "vite",
+      "where": "app"
+    },
+    "port": 5173
+  },
+  "existingInstall": {
+    "present": false,
+    "paths": [],
+    "manifest": false
+  },
+  "framerMotion": null,
+  "srcRoot": "src",
+  "evidence": {
+    "repo.appDir": [
+      {
+        "file": "package.json",
+        "note": "react + vite (vite.config.ts), 3 .tsx/.jsx files"
+      }
+    ],
+    "packageManager": [
+      {
+        "file": "package-lock.json"
+      }
+    ],
+    "framework": [
+      {
+        "file": "vite.config.ts"
+      }
+    ],
+    "react": [
+      {
+        "pkg": "react@19.3.1",
+        "file": "package.json"
+      }
+    ],
+    "typescript": [
+      {
+        "file": "tsconfig.app.json",
+        "note": "strict: false"
+      }
+    ],
+    "moduleType": [
+      {
+        "file": "package.json",
+        "note": "\"type\": \"module\""
+      }
+    ],
+    "deps.convention": [
+      {
+        "file": "package.json",
+        "note": "11 dependencies, 7 devDependencies"
+      }
+    ],
+    "aliases.tsconfig": [
+      {
+        "file": "tsconfig.app.json",
+        "line": 11,
+        "note": "@/* → ./src/*"
+      },
+      {
+        "file": "tsconfig.json",
+        "line": 9,
+        "note": "@/* → ./src/*"
+      }
+    ],
+    "aliases.bundler": [
+      {
+        "file": "vite.config.ts",
+        "line": 9,
+        "note": "'@':"
+      }
+    ],
+    "entry": [
+      {
+        "file": "index.html",
+        "note": "<script type=\"module\" src=\"/src/main.tsx\""
+      },
+      {
+        "file": "src/main.tsx"
+      }
+    ],
+    "styling.tailwind": [
+      {
+        "pkg": "tailwindcss@4.3.3",
+        "file": "package.json",
+        "note": "installed"
+      }
+    ],
+    "styling.cssEntry": [
+      {
+        "file": "src/index.css",
+        "line": 1,
+        "note": "@import \"tailwindcss\";"
+      }
+    ],
+    "tokens": [
+      {
+        "file": "src/index.css",
+        "line": 56,
+        "note": "--popover: oklch(1 0 0)"
+      }
+    ],
+    "shadcn.componentsJson": [
+      {
+        "file": "components.json"
+      }
+    ],
+    "shadcn.button": [
+      {
+        "file": "src/components/ui/button.tsx",
+        "note": "icon-sm: true, icon-xs: true"
+      }
+    ],
+    "shadcn.cn": [
+      {
+        "file": "src/lib/utils.ts",
+        "note": "defines cn"
+      }
+    ],
+    "componentLibrary": [
+      {
+        "pkg": "@base-ui/react"
+      }
+    ],
+    "icons": [
+      {
+        "pkg": "lucide-react@1.57.0"
+      }
+    ],
+    "naming": [
+      {
+        "note": "0 PascalCase, 1 kebab-case component files"
+      }
+    ],
+    "darkMode": [
+      {
+        "file": "src/index.css",
+        "line": 6,
+        "note": "html-class: @custom-variant dark (&:is(.dark"
+      }
+    ],
+    "lint.oxlint": [
+      {
+        "file": ".oxlintrc.json"
+      }
+    ],
+    "product.name": [
+      {
+        "file": "index.html",
+        "line": 7,
+        "note": "title: ambient"
+      }
+    ],
+    "scripts.lint": [
+      {
+        "file": "package.json",
+        "note": "\"lint\": oxlint"
+      }
+    ],
+    "scripts.build": [
+      {
+        "file": "package.json",
+        "note": "\"build\": tsc -b && vite build"
+      }
+    ],
+    "scripts.dev": [
+      {
+        "file": "package.json",
+        "note": "\"dev\": vite"
+      }
+    ],
+    "git": [
+      {
+        "note": "git status: clean on claude/nice-pascal-yc0t0k"
+      }
+    ],
+    "jest": [
+      {
+        "note": "no jest config, package.json#jest or jest dependency"
+      }
+    ],
+    "env.default": [
+      {
+        "note": "vite convention: VITE_"
+      }
+    ],
+    "staticDir": [
+      {
+        "note": "vite default"
+      }
+    ],
+    "bundle": [
+      {
+        "note": "no PWA plugin, precache limit or COEP header in the bundler config, vercel.json, public/_headers or netlify.toml"
+      }
+    ],
+    "hotkeys": [
+      {
+        "note": "no cmdk/kbar dependency, no mod+k hotkey binding, no metaKey/ctrlKey handler near 'k'"
+      }
+    ],
+    "zIndex": [
+      {
+        "note": "no z-index / zIndex / z-[n] / z-50 values outside components/ui"
+      }
+    ],
+    "fixedBottom": [
+      {
+        "note": "no fixed + bottom positioning outside components/ui and modal overlays"
+      }
+    ],
+    "i18n": [
+      {
+        "note": "no i18next/next-intl/react-intl/lingui dependency and fewer than two locale files"
+      }
+    ],
+    "network": [
+      {
+        "note": "no HTTP client dependency, fetch wrapper module, worker or IPC bridge"
+      }
+    ],
+    "ai": [
+      {
+        "note": "no AI SDK or provider dependency, no AI env names in .env*, no /ai or /chat routes"
+      }
+    ],
+    "tests": [
+      {
+        "note": "no vitest/jest/playwright/cypress dependency"
+      }
+    ],
+    "agent": [
+      {
+        "note": "no CLAUDE.md, AGENTS.md or DESIGN.md at the root"
+      }
+    ],
+    "existingInstall": [
+      {
+        "note": "no components/ambient, styles/ambient.css or .ambientui/manifest.json"
+      }
+    ]
+  },
+  "confidence": {
+    "app": {
+      "level": "high",
+      "reason": "react + vite config"
+    },
+    "packageManager": {
+      "level": "high",
+      "reason": "lockfile package-lock.json"
+    },
+    "tailwind": {
+      "level": "high",
+      "reason": "node_modules"
+    },
+    "react": {
+      "level": "high",
+      "reason": "node_modules"
+    },
+    "cssEntry": {
+      "level": "high",
+      "reason": "the file that loads Tailwind"
+    },
+    "tokens": {
+      "level": "high",
+      "reason": "18 roles, --popover: oklch(1 0 0)"
+    },
+    "srcRoot": {
+      "level": "high",
+      "reason": "@/* in tsconfig paths"
+    },
+    "env": {
+      "level": "high",
+      "reason": "vite convention"
+    },
+    "darkMode": {
+      "level": "medium",
+      "reason": "@custom-variant dark (&:is(.dark"
+    },
+    "hotkeys": {
+      "level": "medium",
+      "reason": "static search only; verify presses the key for real"
+    },
+    "zIndex": {
+      "level": "high",
+      "reason": "no z-index values"
+    },
+    "fixedBottom": {
+      "level": "medium",
+      "reason": "static class/style search; verify measures the real overlap at 375px"
+    },
+    "network": {
+      "level": "high",
+      "reason": "nothing found"
+    },
+    "ai": {
+      "level": "medium",
+      "reason": "no SDK, provider, env or route found"
+    },
+    "product": {
+      "level": "medium",
+      "reason": "title: ambient"
+    },
+    "entry": {
+      "level": "high",
+      "reason": "from the bundler's entry declaration or a conventional path"
+    },
+    "naming": {
+      "level": "low",
+      "reason": "0 PascalCase vs 1 kebab-case files"
+    },
+    "staticDir": {
+      "level": "medium",
+      "reason": "framework default"
+    }
+  },
+  "baseline": {
+    "takenAt": "2026-10-15T04:22:26.602Z",
+    "checks": [
+      {
+        "id": "typecheck",
+        "command": "npx tsc --noEmit -p tsconfig.app.json",
+        "code": 2,
+        "timedOut": false,
+        "ms": 1082,
+        "tail": "\u001b[96mtsconfig.app.json\u001b[0m:\u001b[93m10\u001b[0m:\u001b[93m5\u001b[0m - \u001b[91merror\u001b[0m\u001b[90m TS5101: \u001b[0mOption 'baseUrl' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '\"ignoreDeprecations\": \"6.0\"' to silence this error.\n  Visit https://aka.ms/ts6 for migration information.\n\n\u001b[7m10\u001b[0m     \"baseUrl\": \".\",\n\u001b[7m  \u001b[0m \u001b[91m    ~~~~~~~~~\u001b[0m\n\n\nFound 1 error in tsconfig.app.json\u001b[90m:10\u001b[0m"
+      },
+      {
+        "id": "lint",
+        "command": "npm run lint",
+        "code": 0,
+        "timedOut": false,
+        "ms": 381,
+        "tail": "> ambient@0.0.0 lint\n> oxlint\n\nsrc/components/ui/button.tsx:57:18: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components."
+      },
+      {
+        "id": "build",
+        "command": "npm run build",
+        "code": 2,
+        "timedOut": false,
+        "ms": 1571,
+        "tail": "> ambient@0.0.0 build\n> tsc -b && vite build\n\n\u001b[96mtsconfig.app.json\u001b[0m:\u001b[93m10\u001b[0m:\u001b[93m5\u001b[0m - \u001b[91merror\u001b[0m\u001b[90m TS5101: \u001b[0mOption 'baseUrl' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '\"ignoreDeprecations\": \"6.0\"' to silence this error.\n  Visit https://aka.ms/ts6 for migration information.\n\n\u001b[7m10\u001b[0m     \"baseUrl\": \".\",\n\u001b[7m  \u001b[0m \u001b[91m    ~~~~~~~~~\u001b[0m\n\n\nFound 1 error."
+      }
+    ]
+  }
+}

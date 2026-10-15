@@ -1,0 +1,5 @@
+# ambientui: this machine's scratch; the manifest, plan and profile are committed
+session.json
+install.log
+verify.json
+baseline/
