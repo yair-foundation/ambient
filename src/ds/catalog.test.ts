@@ -8,7 +8,7 @@ import { DEMOS } from "./demos"
 const root = join(import.meta.dirname, "..")
 const files = (dir: string): string[] => {
   try {
-    return readdirSync(join(root, dir)).filter((f) => f.endsWith(".tsx")).map((f) => f.replace(/\.tsx$/, ""))
+    return readdirSync(join(root, dir)).filter((f) => f.endsWith(".tsx") && !f.endsWith(".test.tsx")).map((f) => f.replace(/\.tsx$/, ""))
   } catch {
     return [] // the folder does not exist yet: nothing to document
   }

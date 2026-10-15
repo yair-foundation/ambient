@@ -20,6 +20,15 @@ export const ds = page([
     }),
   },
   {
+    ask: "Which shared patterns has a person approved?",
+    match: /approved|shared (pattern|component)|promot/i,
+    answer: () => ({
+      text: "UndoNotice (src/components/shared/undo-notice.tsx) confirms that an action changed a record and lets the person reverse it. See its entry in the Components tab and docs/DECISION-LOG.md.",
+      refs: [],
+      followUps: ["Who reviews changes to the system?"],
+    }),
+  },
+  {
     ask: "Who reviews changes to the system?",
     match: /review|govern|approve|role/i,
     answer: () => ({

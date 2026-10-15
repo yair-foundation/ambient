@@ -9,7 +9,7 @@
  * Demos live in ./demos.tsx, joined by `id`.
  */
 
-export type Layer = "product" | "ambient" | "local"
+export type Layer = "product" | "ambient" | "shared" | "local"
 
 export interface CatalogEntry {
   id: string
@@ -194,6 +194,32 @@ export const CATALOG: CatalogEntry[] = [
     behavior: ["<Icon name=\"check\" /> with names from the closed IconName set (see src/lib/icon-library.ts)", "Decorative by default: put the label on the parent control", "No direct icon-library imports; a new name must be mapped in all five libraries"],
     whenToUse: ["Every icon in product UI"],
     whenNotToUse: ["Carrying meaning without text"],
+  },
+  {
+    id: "undo-notice",
+    name: "UndoNotice",
+    layer: "shared",
+    source: "src/components/shared/undo-notice.tsx",
+    summary: "Confirms that an action changed a record and lets the person reverse it. Approved shared pattern.",
+    behavior: [
+      "props: message (what changed), detail (the consequence, e.g. a remaining count), onUndo",
+      "Composes Alert and Button. Announced politely (role=status); never auto-dismisses",
+      "onUndo returns boolean | Promise<boolean>. true: the prior state was restored. false: the reversal did not succeed. A rejected promise: the outcome could not be confirmed. Anything else, including undefined, is not success",
+      "Failure wording is honest about uncertainty: false shows \"Couldn't undo. Try again.\"; a rejection shows \"Couldn't confirm Undo. Check the current state before trying again.\". Undo stays available after either",
+      "Undo cannot run twice at once, and after a successful Undo the button reads \"Undone\" and cannot run again",
+      "State belongs to one action: the notice resets when `message` or `actionId` changes, so a failure never carries over to the next action. Pass `actionId` when two actions can produce the same message",
+      "After a failed Undo the consequence in `detail` stays visible beside the failure, because the change is still in place",
+      "The owning feature removes or updates the notice after success, and restores the record itself: the component holds no record state and does not know your store",
+    ],
+    whenToUse: [
+      "Right after an action that changes a record and that the person might want to take back (a decision, a status change, an assignment)",
+      "Show it where the person is looking and keep `detail` true to the data on screen",
+    ],
+    whenNotToUse: [
+      "Actions that cannot be reversed (ask for confirmation before the action instead)",
+      "Errors (use Alert with a Retry action)",
+      "Passive information, or feedback that needs no way back",
+    ],
   },
   {
     id: "assistant",

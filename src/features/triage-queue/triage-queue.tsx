@@ -6,6 +6,7 @@
  */
 import * as React from "react"
 
+import { UndoNotice } from "@/components/shared/undo-notice"
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -78,11 +79,13 @@ export default function TriageQueue({ store: injected }: { store?: TriageStore }
     if (!isMobile) focusAfter.current = next?.id ?? null
   }
 
-  async function undo(entry: LogEntry) {
-    await store.undo(entry.id)
-    setBanner(null)
+  async function undo(entry: LogEntry): Promise<boolean> {
+    const restored = await store.undo(entry.id)
+    if (!restored) return false
+    setBanner(null) // the owning feature removes the notice once the prior state is back
     setSelectedId(entry.before.id)
     setFilter("open")
+    return true
   }
 
   function onListKeyDown(e: React.KeyboardEvent) {
@@ -109,16 +112,12 @@ export default function TriageQueue({ store: injected }: { store?: TriageStore }
       </div>
 
       {banner && (
-        <Alert role="status">
-          <Icon name="check" />
-          <AlertTitle>{banner.message}</AlertTitle>
-          <AlertDescription>{open.length ? `${open.length} left to triage.` : "The queue is clear."}</AlertDescription>
-          <AlertAction>
-            <Button size="sm" variant="outline" onClick={() => void undo(banner)}>
-              Undo
-            </Button>
-          </AlertAction>
-        </Alert>
+        <UndoNotice
+          actionId={banner.id}
+          message={banner.message}
+          detail={open.length ? `${open.length} left to triage.` : "The queue is clear."}
+          onUndo={() => undo(banner)}
+        />
       )}
 
       {load === "error" ? (

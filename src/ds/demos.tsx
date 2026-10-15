@@ -13,7 +13,9 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { UndoNoticeDemo } from "./undo-notice-demo"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+
 
 /** Live examples, keyed by catalog id. */
 export const DEMOS: Record<string, () => React.ReactNode> = {
@@ -132,5 +134,6 @@ export const DEMOS: Record<string, () => React.ReactNode> = {
       ))}
     </div>
   ),
+  "undo-notice": () => <UndoNoticeDemo />,
   assistant: () => <p className="text-sm text-muted-foreground">Press ⌘K (Ctrl+K) to open it.</p>,
 }
