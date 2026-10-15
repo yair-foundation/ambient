@@ -122,9 +122,9 @@ export default function TriageQueue({ store: injected }: { store?: TriageStore }
       )}
 
       {load === "error" ? (
-        <Alert>
-          <Icon name="alert" className="text-destructive" />
-          <AlertTitle className="text-destructive">Couldn't load leads</AlertTitle>
+        <Alert variant="destructive">
+          <Icon name="alert" />
+          <AlertTitle>Couldn't load leads</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
           <AlertAction>
             <Button size="sm" variant="outline" onClick={() => void store.load({ retry: true })}>

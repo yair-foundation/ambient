@@ -17,10 +17,8 @@ import { assess, type Assessment } from "./rules"
 export function ReadinessBadge({ lead }: { lead: Lead }) {
   if (lead.status !== "new") return <Badge variant="outline">{STATUS_LABEL[lead.status]}</Badge>
   const r = assess(lead).readiness
-  // "Blocked" uses outline + the destructive text role, not variant="destructive": that variant's
-  // red-on-red-tint fails AA contrast at this size (a finding for the design system, see HARNESS_RESULTS.md).
   return r === "blocked" ? (
-    <Badge variant="outline" className="border-destructive/40 text-destructive">
+    <Badge variant="destructive">
       <Icon name="alert" size={12} />
       {READINESS_LABEL[r]}
     </Badge>

@@ -161,14 +161,13 @@ export function LeadDetail({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              {/* not variant="destructive": its red-on-red-tint recipe measures 3.85:1 (see docs/proposals/ds-bug-fixes.md) */}
-              <Button type="submit" variant="outline" className="border-destructive/40 text-destructive" disabled={pending || !reason}>Disqualify</Button>
+              <Button type="submit" variant="destructive" disabled={pending || !reason}>Disqualify</Button>
             </form>
           )}
           {error && (
-            <Alert>
-          <Icon name="alert" className="text-destructive" />
-              <AlertTitle className="text-destructive">Not saved</AlertTitle>
+            <Alert variant="destructive">
+            <Icon name="alert" />
+              <AlertTitle>Not saved</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
