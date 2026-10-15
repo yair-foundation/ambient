@@ -39,7 +39,7 @@ function inFilter(l: Lead, f: Filter) {
   return f === "open" || assess(l).readiness === f
 }
 
-export default function TriageA({ store: injected }: { store?: TriageStore } = {}) {
+export default function TriageQueue({ store: injected }: { store?: TriageStore } = {}) {
   const { load, error, leads, log, store } = useTriage(injected)
   const isMobile = useIsMobile()
   const [filter, setFilter] = React.useState<Filter>("open")
@@ -156,10 +156,10 @@ export default function TriageA({ store: injected }: { store?: TriageStore } = {
           <section aria-label="Lead queue" className="grid content-start gap-3 lg:col-span-2">
             <div>
               <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
-                <TabsList className="h-auto flex-wrap justify-start">
+                <TabsList className="group-data-horizontal/tabs:h-auto grid w-full grid-cols-3 gap-1 sm:inline-flex sm:w-fit">
                   {(Object.keys(FILTER_LABEL) as Filter[]).map((f) => (
-                    <TabsTrigger key={f} value={f}>
-                      {FILTER_LABEL[f]} <span className="ml-1 text-muted-foreground">{counts[f]}</span>
+                    <TabsTrigger key={f} value={f} className="h-9">
+                      {FILTER_LABEL[f]} <span className="ml-1">{counts[f]}</span>
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -200,6 +200,9 @@ export default function TriageA({ store: injected }: { store?: TriageStore } = {
                 ))}
               </ul>
             )}
+            <p className="text-xs text-muted-foreground">
+              Ordered by urgency: overdue first, highest value first; then soonest deadline.
+            </p>
             <p className="hidden text-xs text-muted-foreground lg:block">
               <kbd className="rounded-sm border px-1">↑</kbd> <kbd className="rounded-sm border px-1">↓</kbd> or <kbd className="rounded-sm border px-1">j</kbd>/<kbd className="rounded-sm border px-1">k</kbd> to move through the queue.
             </p>

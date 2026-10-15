@@ -10,13 +10,15 @@ import { cn } from "@/lib/utils"
 
 import { ago, STATUS_LABEL } from "../triage/format"
 import { BlockerList, GapEditor, LeadFacts, ReadinessBadge, Sla, Warnings } from "../triage/parts"
-import { ACTION_LABEL, DISQUALIFY_REASONS, assess, fmtDate, type ActionId } from "../triage/rules"
+import { ACTION_LABEL, DISQUALIFY_REASONS, actionImpact, assess, fmtDate, type ActionId } from "../triage/rules"
 import { useDecision } from "../triage/use-decision"
 import type { LogEntry, TriageStore } from "../triage/store"
 
 const defaultRevisit = () => new Date(NOW + 30 * 86_400_000).toISOString().slice(0, 10)
 const today = () => new Date(NOW).toISOString().slice(0, 10)
 const ORDER: ActionId[] = ["qualify", "request_info", "nurture", "disqualify"]
+/** The other actions, in a fixed order with the quiet, irreversible-feeling one (disqualify) last. */
+const OTHERS = (recommended: ActionId) => ORDER.filter((id) => id !== recommended)
 
 export function LeadDetail({
   lead,
@@ -91,23 +93,41 @@ export function LeadDetail({
 
       {open ? (
         <section aria-label="Decide" className="grid gap-3 border-t pt-4">
-          <p className="text-sm">
-            <span className="font-medium">Recommended: {ACTION_LABEL[a.recommended]}.</span>{" "}
-            <span className="text-muted-foreground">{a.recommendedWhy}</span>
-          </p>
-          <div className={cn("flex flex-wrap gap-2", compact && "sticky bottom-0 bg-background py-2")}>
-            {ORDER.map((id) => (
+          <h3 className="text-sm font-medium">Next step</h3>
+          <div className="grid gap-1 text-sm">
+            <p>
+              <span className="font-medium">Recommended: {ACTION_LABEL[a.recommended]}.</span>{" "}
+              <span className="text-muted-foreground">{a.recommendedWhy}</span>
+            </p>
+            <p className="text-muted-foreground">{actionImpact(lead, a.recommended)}</p>
+          </div>
+          <div className={cn("grid gap-2", compact && "sticky bottom-0 bg-background py-2")}>
+            <div>
               <Button
-                key={id}
-                variant={id === a.recommended ? "default" : "outline"}
-                disabled={pending || !a.allowed[id].ok}
-                aria-expanded={id === "nurture" || id === "disqualify" ? mode === id : undefined}
-                onClick={() => choose(id)}
+                className="w-full sm:w-auto"
+                disabled={pending}
+                aria-expanded={a.recommended === "nurture" || a.recommended === "disqualify" ? mode === a.recommended : undefined}
+                onClick={() => choose(a.recommended)}
               >
-                {ACTION_LABEL[id]}
+                {ACTION_LABEL[a.recommended]}
               </Button>
-            ))}
-            {pending && <span role="status" className="self-center text-sm text-muted-foreground">Saving…</span>}
+            </div>
+            <div role="group" aria-label="Other actions" className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">Or</span>
+              {OTHERS(a.recommended).map((id) => (
+                <Button
+                  key={id}
+                  size="sm"
+                  variant={id === "disqualify" ? "ghost" : "outline"}
+                  disabled={pending || !a.allowed[id].ok}
+                  aria-expanded={id === "nurture" || id === "disqualify" ? mode === id : undefined}
+                  onClick={() => choose(id)}
+                >
+                  {ACTION_LABEL[id]}
+                </Button>
+              ))}
+              {pending && <span role="status" className="text-sm text-muted-foreground">Saving…</span>}
+            </div>
           </div>
           <ul className="grid gap-0.5 text-xs text-muted-foreground">
             {ORDER.filter((id) => !a.allowed[id].ok).map((id) => (

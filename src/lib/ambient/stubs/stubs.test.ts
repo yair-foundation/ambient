@@ -14,8 +14,7 @@ describe("assistant stubs", () => {
     await triageStore.load()
     const problems = await auditAmbientApi(stubs, [
       { id: "home", label: "Overview" },
-      { id: "triage-a", label: "Triage A" },
-      { id: "triage-b", label: "Triage B" },
+      { id: "triage", label: "Lead triage" },
       { id: "ds", label: "Design system" },
     ])
     expect(problems).toEqual([])

@@ -24,7 +24,7 @@ Review work with the skills `ds-manager`, `product-design-manager` and `product-
 
 ## Commands
 
-- `npm run dev`: the app. Routes: `/`, `/triage/a`, `/triage/b`, `/ds`.
+- `npm run dev`: the app. Routes: `/`, `/triage`, `/ds`.
 - `npm run gate`: typecheck, lint, tests, build. Run it before committing.
 
 ## Page checklist (every new page)

@@ -11,7 +11,7 @@ construction.
 
 ## Commands
 
-- `npm run dev` — the app (`/`, `/triage/a`, `/triage/b`, `/ds`).
+- `npm run dev` — the app (`/`, `/triage`, `/ds`).
 - `npm run gate` — typecheck, lint, tests and build. Run it before every commit.
 - `npm test` — rules, the registry coverage check and the assistant stub audit.
 - Review switches on a triage URL: `?state=loading|empty|error`, `?fail=save`.

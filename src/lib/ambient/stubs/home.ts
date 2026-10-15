@@ -5,18 +5,18 @@ export const home = page([
     ask: "What is in this prototype?",
     match: /what|prototype|here/i,
     answer: () => ({
-      text: "ClientOps is a small fictional CRM. It holds one product mission, triaging incoming leads, explored as two different directions on the same data and rules: a queue workspace and a guided review.",
+      text: "ClientOps is a small fictional CRM. It holds one product mission so far: triaging incoming leads. The queue stays beside the selected lead so you can scan, review and decide without losing your place.",
       refs: [],
-      followUps: ["How do the two directions differ?"],
+      followUps: ["How is the lead queue ordered?"],
     }),
   },
   {
-    ask: "How do the two directions differ?",
-    match: /differ|compare|difference/i,
+    ask: "How is the lead queue ordered?",
+    match: /order|sort|priorit/i,
     answer: () => ({
-      text: "Direction A shows the whole queue beside the selected lead, so you can scan and jump. Direction B shows one lead at a time with a recommended next action, so you decide and move on.",
+      text: "Leads past their first-response target come first, highest value first among them. Leads still inside their target follow, soonest deadline first.",
       refs: [],
-      followUps: ["What is in this prototype?"],
+      followUps: ["Where do I see the design system?"],
     }),
   },
   {

@@ -9,7 +9,7 @@ unfilled entry as "not available", never as licence to invent the answer.
 |---|---|
 | Product | ClientOps — a small fictional B2B CRM that helps account managers manage incoming leads, existing accounts and follow-up activities |
 | Primary user | An account manager handling many customer records a day who must see what needs attention and act without losing context |
-| Primary surfaces | The triage directions (`/triage/a`, `/triage/b`), the design system reference (`/ds`), the assistant (Cmd-K) |
+| Primary surfaces | Lead triage (`/triage`), the design system reference (`/ds`), the assistant (Cmd-K) |
 | Voice | Calm, direct, specific. Plain language, active voice, no exclamation marks. Default to DESIGN.md §1 where this file is silent |
 | Reading level | Business users who know what a lead and an account are; no design-system jargon in product UI |
 

@@ -4,17 +4,17 @@ import { describe, expect, it } from "vitest"
 
 import { SEED_LEADS } from "@/data/clientops"
 import { createTriageStore } from "../triage/store"
-import TriageA from "./triage-a"
+import TriageQueue from "./triage-queue"
 
 const fast = { latencyMs: 0 }
 const setup = (opts = {}, seed = SEED_LEADS) => {
   const store = createTriageStore(seed, { ...fast, ...opts })
-  render(<TriageA store={store} />)
+  render(<TriageQueue store={store} />)
   return { store, user: userEvent.setup() }
 }
 const detail = () => screen.getByRole("region", { name: "Lead detail" })
 
-describe("Direction A: queue workspace", () => {
+describe("Lead triage queue", () => {
   it("shows a loading state, then the queue ordered by urgency with the most urgent lead open", async () => {
     setup()
     expect(screen.getByText("Loading leads")).toBeInTheDocument()
@@ -107,5 +107,27 @@ describe("Direction A: queue workspace", () => {
     await user.click(screen.getByRole("tab", { name: /Blocked/ }))
     const rows = within(screen.getByRole("list", { name: "Blocked leads" })).getAllByRole("button")
     expect(rows).toHaveLength(3) // Orchard & Vale (duplicate), Kestrel and Quillbox (region)
+  })
+
+  it("gives each lead exactly one primary action, the recommended one, with its consequence stated", async () => {
+    const { user } = setup()
+    await screen.findByText(/12 to triage/)
+    const decide = () => within(detail()).getByRole("region", { name: "Decide" })
+    // Fernhill: missing info, so the recommended (and only filled) action is Request info
+    const filled = () => within(decide()).getAllByRole("button").filter((b) => b.classList.contains("bg-primary"))
+    expect(filled().map((b) => b.textContent)).toEqual(["Request info"])
+    expect(within(decide()).getByText(/Asks Aaron Whitfield for team size, budget range, buying timeline/)).toBeVisible()
+    // Northwind: ready, so Qualify is primary
+    await user.click(within(screen.getByRole("list", { name: "All open leads" })).getByRole("button", { name: /Northwind Freight/ }))
+    expect(filled().map((b) => b.textContent)).toEqual(["Qualify"])
+    expect(within(decide()).getByText(/Assigns Northwind Freight to you/)).toBeVisible()
+    // the alternatives are subordinate and Disqualify comes last
+    const others = within(within(decide()).getByRole("group", { name: "Other actions" })).getAllByRole("button").map((b) => b.textContent)
+    expect(others).toEqual(["Request info", "Nurture", "Disqualify"])
+  })
+
+  it("states the queue ordering rule on screen", async () => {
+    setup()
+    expect(await screen.findByText(/Ordered by urgency: overdue first, highest value first; then soonest deadline\./)).toBeVisible()
   })
 })

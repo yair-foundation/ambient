@@ -8,8 +8,7 @@ import { cn } from "@/lib/utils"
 import { NAV } from "@/nav"
 import DsPage from "@/ds/ds-page"
 import Home from "@/pages/home"
-import TriageA from "@/features/triage-a/triage-a"
-import TriageB from "@/features/triage-b/triage-b"
+import TriageQueue from "@/features/triage-queue/triage-queue"
 
 function pageFor(path: string) {
   return NAV.find((n) => n.path === path) ?? NAV[0]
@@ -58,7 +57,7 @@ function Shell({ path }: { path: string }) {
         </div>
       </header>
       <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 pt-4">
-        {path === "/triage/a" ? <TriageA /> : path === "/triage/b" ? <TriageB /> : path === "/ds" ? <DsPage /> : <Home />}
+        {path === "/triage" ? <TriageQueue /> : path === "/ds" ? <DsPage /> : <Home />}
       </main>
     </div>
   )

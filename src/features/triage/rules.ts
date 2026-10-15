@@ -57,6 +57,21 @@ export const ACTION_LABEL: Record<ActionId, string> = {
   disqualify: "Disqualify",
 }
 
+/** What choosing an action will do, in the person's terms (impact copy, not a description of the button). */
+export function actionImpact(lead: Lead, action: ActionId): string {
+  const gaps = assess(lead).gaps.map((g) => g.label.toLowerCase())
+  switch (action) {
+    case "qualify":
+      return `Assigns ${lead.company} to you and moves it into your qualified pipeline.`
+    case "request_info":
+      return `Asks ${lead.contact.name} for ${gaps.join(", ") || "the missing details"}. The lead leaves your queue until they reply.`
+    case "nurture":
+      return `Keeps ${lead.company} warm and brings it back to you on the date you choose.`
+    case "disqualify":
+      return `Closes ${lead.company} with a reason you can review later.`
+  }
+}
+
 export const DISQUALIFY_REASONS = [
   "No budget",
   "Not a fit for the product",
