@@ -1,38 +1,89 @@
 # Harness results: ClientOps on Ambient UI
 
-Status as of the **second Govern checkpoint**: Direction A approved, B rejected. **Nothing has been promoted to the shared system yet**; two proposals await approval.
-One practical demonstration, not statistical proof of better design.
+One practical demonstration with one reuse run. It is evidence, not statistical proof, and it does not show that the
+design is better.
 
-| # | Criterion | Status | Evidence so far |
+## Verdict
+
+**Success on the central question, with narrow limits.** A fresh agent, given only the product brief and the normal
+repository, discovered the approved shared pattern through the repository's own documents, used the shared
+implementation instead of building its own, respected its documented contract, and shipped a feature that behaved
+correctly in a real browser. All six criteria are met on the evidence below. The limits (one run, optional fit, shared
+filesystem, same model family) are in "What this does not show".
+
+| # | Criterion | Status | Evidence |
 |---|---|---|---|
-| S1 | Foundation | **PASS** | Installed with the official `@ambient-ui/cli` flow (doctor, begin, install, verify). `ambientui verify` passes 12 checks against the production build (hotkey, theme, mobile orb, no console errors). Data layer: `src/lib/foundation/tokens.ts`, controls and propagation sample at `/ds`. Component layer: `src/ds/catalog.ts` rendered at `/ds` → Components, with a coverage test. Agent layer: `CLAUDE.md`, `.claude/ambientui/CLAUDE.md`, `ds-manager`, `product-design-manager`, `product-copy`. Propagation check: accent, gray, radius, spacing and scaling each moved exactly the expected computed styles. Assistant stub audit passes for every page. |
-| S2 | Consistency | **PASS** | Two directions share data, rules, store, Foundation and components. Grep over product code: 0 hex/rgb/oklch literals, 0 arbitrary Tailwind values, 0 direct icon-library imports, no CSS beyond the shipped files. One inline style (progress-bar width, a data value). |
-| S3 | Governance | **PARTIAL** | A person explicitly approved Direction A and rejected B (logged in `docs/DECISION-LOG.md`). Approval of a shared-system promotion is still pending (`docs/proposals/`). |
-| S4 | Promotion | NOT TESTED | No shared change made yet, by design. Candidate `UndoNotice` is built and verified in an isolated worktree, not applied. |
-| S5 | Reuse | NOT TESTED | Second task frozen (hash in `docs/governance/second-task.sha256.md`); fresh-agent run not started. |
-| S6 | Integrity | NOT TESTED (interim: open findings) | 29 automated tests pass; lead triage passes axe in the queue, every form state, the decision banner and the decided lead, at 1280 and 390 px in light and dark; browser flows verified. Open: the shared destructive-variant contrast defects (the `/ds` page still shows them). The second feature does not exist yet. |
+| S1 | Foundation | **PASS** | Official `@ambient-ui/cli` install (`doctor`, `begin`, `install`, `verify`: 12 checks pass on the production build). Data layer `src/lib/foundation/tokens.ts` with a propagation check; component layer `src/ds/catalog.ts` rendered at `/ds` with a registry-coverage test; agent layer `CLAUDE.md` plus three adapted skills |
+| S2 | Consistency | **PASS** | Lead triage and renewals share one Foundation and the same components. `npm run audit:ds` (colour literals, arbitrary values, inline styles, icon imports, motion literals, hand-rolled dialogs, assistant stubs) passes on both; no competing design system or CSS |
+| S3 | Governance | **PASS** | A person explicitly approved Direction A (B rejected), the destructive contrast fix, and `UndoNotice` revision 2, each logged in `docs/DECISION-LOG.md`. A review (three skills invoked) preceded the promotion and changed it |
+| S4 | Promotion | **PASS** | `src/components/shared/undo-notice.tsx`: implemented, documented (registry entry, `/ds` demo that really changes and restores a record, decision-log row), tested (17 tests), and discoverable (S5 trail). Lead triage uses it |
+| S5 | Reuse | **PASS** (outcome A, pre-registered) | See "Phase 5". One run |
+| S6 | Integrity | **PASS** (automated and browser evidence only) | Both features pass: 59 tests, `audit:ds`, axe, browser flows. No known material failure remains; listed non-material issues below. No human or screen-reader testing |
 
-## Findings to date
+## Approved changes
+1. **Direction A (queue workspace)** is the product at `/triage`. Direction B is archived inert in `docs/rejected/`.
+2. **Destructive contrast fix** (Badge, Button, Alert): outlined with `text-destructive` on the plain surface. Measured
+   with axe: Badge and Button were 3.85:1 light and 4.36:1 dark, Alert description 4.49:1 light. After: 4.6 to 4.77:1
+   light and 6.1 to 6.4:1 dark at rest, hover and focus. One deviation from the prepared patch: its grey hover fill
+   measured 4.35:1, so hover is a border emphasis. No Foundation token changed.
+3. **`UndoNotice` revision 2**: `onUndo` returns `boolean | Promise<boolean>` (only `true` is success; `false` is a failed
+   reversal; a rejection is "could not confirm"); failure wording admits uncertainty; Undo is final after success;
+   state resets per action (`message` or `actionId`). The governance review found the cross-action stale-state defect
+   in revision 1 before it shipped.
 
-1. **Shared destructive recipe fails contrast (one root cause, three components):** Badge and Button `destructive`
-   measure 3.85:1 light / 4.36:1 dark; Alert `destructive` description 4.49:1 light (AA needs 4.5:1). Correction: an
-   earlier version of this file said the Badge was 4.49:1; that was the Alert's number, not measured for the Badge.
-   Product code avoids all three. A verified fix (3 class strings, 0 violations) is proposed, not applied:
-   `docs/proposals/ds-bug-fixes.md`.
-2. **Foundation role pair** `--muted-foreground` on `--muted` is 4.34:1 with slate. Avoided locally; needs a Foundation decision.
-3. **Process catches worth knowing:** the keyboard-focus bug, the unusable queue ordering, a "wrap" fix that never took
-   effect (Tabs height is hard-coded), an error state that could not render under StrictMode, and a disabled-button
-   contrast failure that axe skips. All were found by running the product, not by reading it.
-4. The upstream web guide (`ambientui.ai/start.md`) and the installed skill differ; I followed the installed skill and
-   the CLI's plan.
-5. Environment: `verify` hotkey probe failed on the Vite dev server (cold start) and passed 5/5 on the production
-   build; the CLI's runtime probe needed Chrome at `/opt/google/chrome/chrome` (a symlink to the pre-installed
-   Chromium, outside the repo).
-6. One vendored file was edited (`src/components/ambient/responder.ts`, constructor parameter properties rewritten
-   because the Vite template enables `erasableSyntaxOnly`). Recorded in `AMBIENTUI-NOTES.md`.
+## Verification
+- Gate (typecheck, lint, `audit:ds`, tests, build): green, 59 tests.
+- axe: 0 violations over 24 route/state combinations (triage and `/ds`), all three `/ds` tabs, and 28 renewals states
+  (both viewports, both themes, loading, empty, error, open account, validation errors, after save).
+- Contrast of destructive variants at rest, hover, focus: measured above. Disabled keeps 50% opacity.
+- Renewals, in a browser: 23 of 23 checks (`docs/evidence/phase5/verification/behavior-results.txt`).
 
-## Limits of this experiment (stated up front)
+## Phase 5: independent reuse
+Setup: brief SHA-256 verified against the Phase 1 commit twice; evaluation rubric and my fit judgement committed
+before the run (`docs/governance/phase5-protocol.md`); history-free workspace without the experiment documents; the
+prompt held the verbatim brief and a neutral instruction (no pattern, no experiment). Agent: one fresh subagent, 19
+tool calls, about 5.6 minutes.
 
-- The agent that built both directions also wrote the frozen second-task brief, so it knows the brief. The brief
-  was written before any direction existed and its SHA-256 is committed; the text is outside the repository.
-- No human design review has happened yet.
+| Question | Finding | How I know |
+|---|---|---|
+| Discovered the pattern through normal context? | **Yes** | Transcript: read `CLAUDE.md`, then the decision log and `ls src/components/shared` (call 2), the registry (call 3), the triage code (call 4). It never opened `undo-notice.tsx`; it worked from the registry entry and the triage usage |
+| Governance skills actually invoked? | **Yes, all three** | Three `Skill` tool calls (calls 7 to 9), after reading and before writing code (`agent-tool-call-audit.txt`). Applying them is evidenced by a watchlist entry (second master-detail surface, built locally, not promoted), documented assumptions, and `audit:ds` passing. Causation is not provable |
+| Used the shared implementation? | **Yes** | `renewals.tsx` imports `UndoNotice` from `@/components/shared/undo-notice`; no hand-built undo, notice or toast anywhere in the feature; no shared file changed |
+| Respected the contract? | **Yes** | `onUndo` returns a boolean that is `true` only after the store really restores the prior plan (or removes it); the owner removes the notice and reselects the account; `actionId` passed; `detail` shows live portfolio numbers. Browser: Undo restored the plan and the summary ($479k back to $237k, plans 2 back to 1); revision undo restored the earlier outcome |
+| Behaved correctly against the brief? | **Yes** | 14 accounts; ARR $2,115,000 and $421,000 at risk match the data; priority-one escalation blocks "renew as is" until acknowledged; at-risk and churn require next step and date; date must fall between today and the renewal; failed save keeps the form; loading, empty, error with Retry; sheet on phones; summary correct after record, revise, undo. Keyboard: reach, choose, save and Undo with keys only |
+| Duplicate or conflicting implementations? | **None of the approved pattern.** One class of local duplication | It rebuilt the list-beside-record layout, a native-button row, and a store with latency, failure switches and undo log, mirroring triage. These are unpromoted patterns, which it flagged for a person's decision. This is now two surfaces for master-detail |
+
+Pre-registered outcome: **A (reused correctly)**. The fit was pre-registered as optional (the brief asks that a plan
+"can be revised", not for undo), so non-reuse would have been inconclusive, not a failure. It chose reuse.
+
+## What this does not show
+- **One run, one task, optional fit.** It shows reuse is *possible and correct* when an agent chooses it. It does not
+  show how often, or that reuse would happen when the fit is weaker.
+- **Not independent of the builder in the strong sense.** The same model family built the system and ran the test, I wrote
+  the brief, and a subagent shares the machine's filesystem. Mitigation: no outside reads (the one outside path was
+  the harness's overflow file of its own command output).
+- **Discovery had several channels.** `CLAUDE.md` points to `src/components/shared/`, the decision log names the
+  component, and `/triage` is a live example. I cannot say which one caused reuse, or whether it would reuse without
+  the example.
+- **Skill invocation followed an explicit repo instruction.** `CLAUDE.md` now says to invoke the skills. That shows
+  the instruction works, not that agents invoke skills unprompted.
+- **Possible priming:** a decision-log row mentions the skills being "invoked, not just read", and the brief says
+  "change their mind". Both stayed in the test.
+- **Not tested:** a human or screen-reader pass on either feature; keyboard entry into the segmented date field (my
+  automation could not set it, though the app's validation behaved correctly); the Undo failure path in the renewals
+  browser flow (the stores never return false; covered by the component's unit tests); whether the pattern
+  improves design quality or speed.
+
+## Unresolved issues (none material to S1 to S6)
+- Design system: `--muted-foreground` on `--muted` is 4.34:1 with slate (avoided in product code); `TabsList` cannot
+  wrap without an `h-auto` override; 28 to 32 px touch targets; DropdownMenu popup trips a best-practice landmark
+  rule; a radio menu stays open after choosing. Details: `docs/KNOWN-DS-ISSUES.md`.
+- Product: lead detail's "Undo decision" ignores a failed undo (the store never fails today).
+- Upstream: the installed `ambientui-start` skill still mentions Figma.
+- Governance: master-detail and the selectable row now have two surfaces; per the watchlist protocol a person should
+  decide whether to extract them. Nothing was promoted or demoted automatically.
+
+## Records
+`docs/DECISION-LOG.md` (approvals), `docs/GOVERN-SKILL-AUDIT.md` (skills audit), `docs/governance/phase5-protocol.md`
+(pre-registered rubric), `docs/evidence/phase5/` (agent output patch, tool-call audit, verification results and scripts,
+screenshot).

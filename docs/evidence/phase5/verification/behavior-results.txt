@@ -1,0 +1,25 @@
+PASS 14 accounts shown, summary matches data  — {"renewing":"$2,115,000","atRisk":"$421,000","withPlan":"0","without":"14"}
+PASS P1 rule: "renew as is" blocked without acknowledging the escalation  — plans=0
+PASS P1 rule: allowed once acknowledged; summary updates  — {"renewing":"$2,115,000","atRisk":"$237,000","withPlan":"1","without":"13"}
+PASS ARR at risk drops when a high-risk account is planned as renew-as-is ($421k -> $237k)  — $237,000
+PASS Follow-up rule: "at risk" without next step and date is rejected  — plans=1 | Next step (required) Name the next step
+PASS Summary stays accurate after a second plan (ARR at risk $479k, 2 plans)  — {"renewing":"$2,115,000","atRisk":"$479,000","withPlan":"2","without":"12"}
+PASS Shared notice shows what changed + live consequence + Undo  — Plan recorded for Harborline Health: at risk, needs intervention. | 2 of 14 accounts have a plan. $479,000 ARR at risk. | Undo
+PASS Undo genuinely restores the prior state (1 plan, $237k at risk), notice removed  — {"renewing":"$2,115,000","atRisk":"$237,000","withPlan":"1","without":"13"}
+PASS Undone account is plannable again (form is the empty "Record" form)
+PASS A recorded plan opens as "Revise"
+PASS Revision saved with a "Plan revised" notice
+PASS Undo of a revision restores the earlier outcome (renew as is)
+PASS no console errors (desktop)  — []
+PASS Failed save: says so, keeps the form and chosen outcome, records nothing
+PASS Retry after a failed save succeeds
+PASS State: loading  — Renewal risk review | Loading… | Loading renewals
+PASS State: empty  — Renewal risk review | 0 accounts renewing in the next 90 days, 0 without a plan | No renewals in the next 90 d
+PASS State: error  — Renewal risk review | Couldn't load renewals | We couldn't load your renewals. Check your connection and try a
+PASS State: error recovers on Retry
+PASS Mobile: no horizontal overflow
+PASS Mobile: account opens in a sheet
+PASS Mobile: after saving, sheet closes and the notice with Undo is visible
+PASS Mobile: no horizontal overflow after save
+
+23/23 checks passed

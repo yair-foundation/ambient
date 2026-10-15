@@ -1,0 +1,28 @@
+1280l list                                   clean
+1280l ?state=empty                           clean
+1280l ?state=error                           clean
+1280l ?state=loading                         clean
+1280l account open                           clean
+1280l form with validation errors            clean
+1280l after save (notice shown)              clean
+1280d list                                   clean
+1280d ?state=empty                           clean
+1280d ?state=error                           clean
+1280d ?state=loading                         clean
+1280d account open                           clean
+1280d form with validation errors            clean
+1280d after save (notice shown)              clean
+390l list                                    clean
+390l ?state=empty                            clean
+390l ?state=error                            clean
+390l ?state=loading                          clean
+390l account open (sheet)                    clean
+390l form with validation errors             clean
+390l after save (notice shown)               clean
+390d list                                    clean
+390d ?state=empty                            clean
+390d ?state=error                            clean
+390d ?state=loading                          clean
+390d account open (sheet)                    clean
+390d form with validation errors             clean
+390d after save (notice shown)               clean

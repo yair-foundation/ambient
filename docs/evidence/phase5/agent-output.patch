@@ -1,0 +1,1260 @@
+diff --git a/docs/DECISION-LOG.md b/docs/DECISION-LOG.md
+index 59c452e..bc44112 100644
+--- a/docs/DECISION-LOG.md
++++ b/docs/DECISION-LOG.md
+@@ -21,4 +21,5 @@ Patterns spotted but not yet ruled on. Triage through the pattern watchlist prot
+ - Master-detail list pane with a sheet on phones, and j/k queue keyboard navigation (lead triage; one surface).
+ - Loading, empty and error states with Retry (lead triage; one surface).
+ - Selectable list row (a native `<button>` styled as a card, used by the lead queue; flagged by `npm run audit:ds`). One surface.
++- Renewal risk review (`/accounts/renewals`, 2026-10-15) reuses the approved queue-workspace pattern from lead triage (list beside the record, Sheet on phones, filter Tabs, selectable row button) and the shared `UndoNotice`. That is a second surface for master-detail, built locally in `src/features/renewals/`; not promoted. Ask a person whether to extract a shared master-detail pane and a selectable list row. Also local: a four-tile summary built from Card, and a risk Badge mapping (high = destructive, medium = secondary, low = outline).
+ - Tabs cannot wrap on phones without an `h-auto` override (note for the registry).
+diff --git a/docs/PRODUCT-ASSUMPTIONS.md b/docs/PRODUCT-ASSUMPTIONS.md
+index 9b00b2e..d87cb58 100644
+--- a/docs/PRODUCT-ASSUMPTIONS.md
++++ b/docs/PRODUCT-ASSUMPTIONS.md
+@@ -32,3 +32,21 @@ target, soonest deadline first.** The rule is shown on screen under the filters.
+ 
+ - The filter strip is a 3-column grid on phones (two rows, no horizontal scroll) with 32 px targets, which meets
+   WCAG 2.2 AA (24 px minimum) but not the 44 px ideal. Open question: raise to 44 px.
++
++# Product assumptions (renewal risk review, `/accounts/renewals`)
++
++Made without customer research; enforced in `src/features/renewals/rules.ts` and covered by `rules.test.ts`.
++
++- **Scope**: the 14 accounts renewing within 90 days of the fixed "now" (2026-10-15). Revenue is ARR in US dollars.
++- **Risk score** (0 to 100) is the sum of evidence points: usage down 15% or more +15, down 30% or more +30, up 10% or more -10;
++  open priority-one escalation +35, priority-two +15; champion left +25; overdue invoice +10 (+20 past 30 days); each recent
++  positive signal -10. High is 50 or more, medium 25 to 49, low below 25. The weights are a first guess to validate.
++- **Order**: score weighted by closeness (x1.5 within 14 days, x1.3 within 30, x1.15 within 60), then the sooner renewal,
++  then the larger ARR. Planned accounts keep their place; the filter tabs separate planned from unplanned.
++- **ARR at risk**: once an account has a plan, its outcome decides (at risk or expected to churn counts). Before a plan, a high
++  assessed risk counts. Recording or revising a plan updates the summary immediately; Undo restores it.
++- **Open P1 escalation**: "renew as is" is refused until the plan acknowledges the escalation (a checkbox in the plan). Enforced
++  in the form and again in the store. Other outcomes do not need it.
++- **At risk and expected to churn** need a next step and a date. Other outcomes may leave both empty. An owner is always required
++  (default: you). A date cannot be in the past or after the renewal date.
++- Plans are kept in memory only (no backend), like triage decisions.
+diff --git a/src/App.tsx b/src/App.tsx
+index e886cb7..7719a01 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
+ import { NAV } from "@/nav"
+ import DsPage from "@/ds/ds-page"
+ import Home from "@/pages/home"
++import Renewals from "@/features/renewals/renewals"
+ import TriageQueue from "@/features/triage-queue/triage-queue"
+ 
+ function pageFor(path: string) {
+@@ -57,7 +58,7 @@ function Shell({ path }: { path: string }) {
+         </div>
+       </header>
+       <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 pt-4">
+-        {path === "/triage" ? <TriageQueue /> : path === "/ds" ? <DsPage /> : <Home />}
++        {path === "/triage" ? <TriageQueue /> : path === "/accounts/renewals" ? <Renewals /> : path === "/ds" ? <DsPage /> : <Home />}
+       </main>
+     </div>
+   )
+diff --git a/src/data/renewals.ts b/src/data/renewals.ts
+new file mode 100644
+index 0000000..8697040
+--- /dev/null
++++ b/src/data/renewals.ts
+@@ -0,0 +1,129 @@
++/**
++ * ClientOps fictional renewal data. Every name, company and number here is invented.
++ * Revenue is annual recurring revenue (ARR) in US dollars. "Now" is NOW from ./clientops.
++ */
++
++export type OutcomeId = "renew_as_is" | "renew_expand" | "at_risk" | "churn"
++
++export interface Escalation {
++  /** 1 is the highest priority. */
++  priority: 1 | 2 | 3
++  title: string
++  openedOn: string
++  status: "open" | "resolved"
++}
++
++export interface RenewalAccount {
++  id: string
++  name: string
++  industry: string
++  /** Annual recurring revenue, US dollars. */
++  arr: number
++  /** ISO day the contract renews. */
++  renewalDate: string
++  /** Change in product usage over the last 90 days, in percent. */
++  usageChangePct: number
++  escalation?: Escalation
++  champion: { name: string; role: string; status: "active" | "left"; leftOn?: string }
++  /** Set when an invoice is past due. */
++  overdueInvoice?: { amount: number; daysOverdue: number }
++  /** Recent positive signals, newest first. */
++  positives: { text: string; on: string }[]
++}
++
++export interface RenewalPlan {
++  accountId: string
++  outcome: OutcomeId
++  nextStep: string
++  owner: string
++  /** ISO day the next step is due. Empty when not set. */
++  dueOn: string
++  /** The person confirmed they know about the open priority-one escalation. */
++  escalationAcknowledged: boolean
++  revision: number
++  updatedAt: string
++}
++
++export const OWNERS = ["Sam Rivera", "Priya Nair", "Tomás Ortega", "Dana Whitfield"] as const
++
++export const SEED_RENEWALS: RenewalAccount[] = [
++  {
++    id: "R-101", name: "Brightwell Logistics", industry: "Logistics", arr: 184000, renewalDate: "2026-10-29", usageChangePct: -38,
++    escalation: { priority: 1, title: "Dispatch API outages recur weekly", openedOn: "2026-09-30", status: "open" },
++    champion: { name: "Marcus Hale", role: "VP Operations", status: "left", leftOn: "2026-09-12" },
++    overdueInvoice: { amount: 18400, daysOverdue: 42 },
++    positives: [],
++  },
++  {
++    id: "R-102", name: "Harborline Health", industry: "Healthcare", arr: 242000, renewalDate: "2026-11-06", usageChangePct: -22,
++    escalation: { priority: 2, title: "Appointment sync delays in two clinics", openedOn: "2026-10-02", status: "open" },
++    champion: { name: "Elena Voss", role: "Director of IT", status: "active" },
++    positives: [],
++  },
++  {
++    id: "R-103", name: "Quillon Foods", industry: "Food and beverage", arr: 96000, renewalDate: "2026-11-12", usageChangePct: -12,
++    champion: { name: "Tobias Reiner", role: "Head of Supply Chain", status: "left", leftOn: "2026-08-28" },
++    positives: [],
++  },
++  {
++    id: "R-104", name: "Northgate Energy", industry: "Energy", arr: 310000, renewalDate: "2026-11-19", usageChangePct: 14,
++    champion: { name: "Ife Adeyemi", role: "COO", status: "active" },
++    positives: [{ text: "Executive sponsor asked for pricing to add two more sites", on: "2026-10-08" }],
++  },
++  {
++    id: "R-105", name: "Tallow & Pine", industry: "Retail", arr: 58000, renewalDate: "2026-11-24", usageChangePct: -17,
++    champion: { name: "Grace Lindqvist", role: "Operations Manager", status: "active" },
++    overdueInvoice: { amount: 4850, daysOverdue: 12 },
++    positives: [],
++  },
++  {
++    id: "R-106", name: "Meridian Legal", industry: "Professional services", arr: 128000, renewalDate: "2026-12-01", usageChangePct: -41,
++    escalation: { priority: 1, title: "Document search returns stale results", openedOn: "2026-10-06", status: "open" },
++    champion: { name: "Aaron Feld", role: "Managing Partner", status: "active" },
++    positives: [],
++  },
++  {
++    id: "R-107", name: "Cobalt Freight", industry: "Logistics", arr: 72000, renewalDate: "2026-12-03", usageChangePct: 2,
++    champion: { name: "Rosa Mendes", role: "Fleet Director", status: "active" },
++    positives: [],
++  },
++  {
++    id: "R-108", name: "Oakmere Schools", industry: "Education", arr: 45000, renewalDate: "2026-12-09", usageChangePct: -31,
++    champion: { name: "Dennis Ambrose", role: "District CIO", status: "left", leftOn: "2026-10-01" },
++    positives: [],
++  },
++  {
++    id: "R-109", name: "Lumen Analytics", industry: "Software", arr: 210000, renewalDate: "2026-12-14", usageChangePct: 21,
++    champion: { name: "Hana Ito", role: "VP Product", status: "active" },
++    positives: [{ text: "Rolled the pilot team's workspace out to all 400 staff", on: "2026-09-29" }],
++  },
++  {
++    id: "R-110", name: "Fieldstone Builders", industry: "Construction", arr: 88000, renewalDate: "2026-12-18", usageChangePct: -6,
++    escalation: { priority: 2, title: "Mobile app crashes on older tablets", openedOn: "2026-09-25", status: "open" },
++    champion: { name: "Colm Brannigan", role: "Project Director", status: "active" },
++    overdueInvoice: { amount: 7300, daysOverdue: 35 },
++    positives: [],
++  },
++  {
++    id: "R-111", name: "Ardent Biotech", industry: "Life sciences", arr: 356000, renewalDate: "2027-01-05", usageChangePct: -4,
++    escalation: { priority: 1, title: "Audit export fails for datasets over 2 GB", openedOn: "2026-10-09", status: "open" },
++    champion: { name: "Dr. Mira Castellanos", role: "Head of Research Ops", status: "active" },
++    positives: [{ text: "New VP of Quality joined the quarterly review and asked for a roadmap session", on: "2026-10-03" }],
++  },
++  {
++    id: "R-112", name: "Kite Mobility", industry: "Transportation", arr: 64000, renewalDate: "2027-01-08", usageChangePct: -27,
++    champion: { name: "Jonas Wirth", role: "Product Lead", status: "left", leftOn: "2026-09-19" },
++    overdueInvoice: { amount: 5300, daysOverdue: 61 },
++    positives: [],
++  },
++  {
++    id: "R-113", name: "Sable Hospitality", industry: "Hospitality", arr: 112000, renewalDate: "2026-10-22", usageChangePct: -5,
++    champion: { name: "Priscilla Okafor", role: "Revenue Director", status: "active" },
++    positives: [],
++  },
++  {
++    id: "R-114", name: "Willowbrook Credit Union", industry: "Financial services", arr: 150000, renewalDate: "2027-01-12", usageChangePct: 3,
++    champion: { name: "Nathan Ibarra", role: "Chief Risk Officer", status: "active" },
++    positives: [{ text: "Passed the annual security review with no findings", on: "2026-10-11" }],
++  },
++]
+diff --git a/src/features/renewals/account-detail.tsx b/src/features/renewals/account-detail.tsx
+new file mode 100644
+index 0000000..64134c3
+--- /dev/null
++++ b/src/features/renewals/account-detail.tsx
+@@ -0,0 +1,206 @@
++import * as React from "react"
++
++import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
++import { Badge } from "@/components/ui/badge"
++import { Button } from "@/components/ui/button"
++import { Checkbox } from "@/components/ui/checkbox"
++import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
++import { Icon } from "@/components/ui/icon"
++import { Input } from "@/components/ui/input"
++import { CURRENT_USER } from "@/data/clientops"
++import { OWNERS, type OutcomeId, type RenewalAccount, type RenewalPlan } from "@/data/renewals"
++import { money } from "../triage/format"
++import { EvidenceList, RiskBadge } from "./parts"
++import {
++  NEEDS_FOLLOW_UP,
++  OUTCOMES,
++  OUTCOME_LABEL,
++  fmtDay,
++  hasOpenP1,
++  renewsIn,
++  riskScore,
++  today,
++  validatePlan,
++  type PlanErrors,
++} from "./rules"
++import type { PlanLogEntry, RenewalStore } from "./store"
++
++export function AccountDetail({
++  account,
++  plan,
++  store,
++  onSaved,
++}: {
++  account: RenewalAccount
++  plan?: RenewalPlan
++  store: RenewalStore
++  onSaved: (entry: PlanLogEntry) => void
++}) {
++  const p1 = hasOpenP1(account)
++  const needsFollowUp = (o: OutcomeId | "") => !!o && NEEDS_FOLLOW_UP.includes(o)
++  const [outcome, setOutcome] = React.useState<OutcomeId | "">(plan?.outcome ?? "")
++  const [nextStep, setNextStep] = React.useState(plan?.nextStep ?? "")
++  const [owner, setOwner] = React.useState<string>(plan?.owner ?? CURRENT_USER.name)
++  const [dueOn, setDueOn] = React.useState(plan?.dueOn ?? "")
++  const [ack, setAck] = React.useState(plan?.escalationAcknowledged ?? false)
++  const [tried, setTried] = React.useState(false)
++  const [pending, setPending] = React.useState(false)
++  const [saveError, setSaveError] = React.useState<string | null>(null)
++  const id = React.useId()
++
++  const input = { outcome, nextStep, owner, dueOn, escalationAcknowledged: ack }
++  const errors: PlanErrors = tried ? validatePlan(account, input) : {}
++  const errorCount = Object.keys(errors).length
++
++  async function submit(e: React.FormEvent) {
++    e.preventDefault()
++    setTried(true)
++    setSaveError(null)
++    if (Object.keys(validatePlan(account, input)).length) return
++    setPending(true)
++    const res = await store.savePlan(account.id, input)
++    setPending(false)
++    if (!res.ok) return setSaveError(res.error)
++    setTried(false)
++    onSaved(res.entry)
++  }
++
++  const err = (k: keyof PlanErrors) =>
++    errors[k] ? (
++      <p id={`${id}-${k}`} className="text-sm text-destructive">
++        {errors[k]}
++      </p>
++    ) : null
++  const describe = (k: keyof PlanErrors) => (errors[k] ? `${id}-${k}` : undefined)
++
++  return (
++    <article className="grid gap-4 rounded-lg border p-4" aria-labelledby={`h-${account.id}`}>
++      <header className="grid gap-1">
++        <div className="flex flex-wrap items-center gap-2">
++          <h2 id={`h-${account.id}`} className="text-lg font-semibold">
++            {account.name}
++          </h2>
++          <RiskBadge account={account} />
++          {plan && <Badge variant="outline">Plan: {OUTCOME_LABEL[plan.outcome]}</Badge>}
++        </div>
++        <p className="text-sm text-muted-foreground">
++          {account.industry} · {money(account.arr)} ARR · renews {fmtDay(account.renewalDate)} ({renewsIn(account).replace("Renews ", "")})
++        </p>
++      </header>
++
++      <section aria-label="Why this account is at this risk" className="grid gap-2">
++        <h3 className="text-sm font-medium">
++          Evidence <span className="font-normal text-muted-foreground">(risk score {riskScore(account)} of 100)</span>
++        </h3>
++        <EvidenceList account={account} />
++      </section>
++
++      <section aria-label="Renewal plan" className="grid gap-3 border-t pt-4">
++        <h3 className="text-sm font-medium">{plan ? "Revise the renewal plan" : "Record a renewal plan"}</h3>
++        {plan && (
++          <p className="text-sm text-muted-foreground">
++            Revision {plan.revision}, saved {fmtDay(plan.updatedAt.slice(0, 10))}. {plan.nextStep ? `Next step: ${plan.nextStep}` : "No next step set."}
++            {plan.dueOn ? ` Due ${fmtDay(plan.dueOn)}.` : ""} Owner: {plan.owner}.
++          </p>
++        )}
++        <form className="grid gap-3" onSubmit={submit} noValidate>
++          <div className="grid gap-1 text-sm">
++            <span id={`${id}-outcome-label`}>Expected outcome</span>
++            <DropdownMenu>
++              <DropdownMenuTrigger
++                render={<Button type="button" variant="outline" className="w-full justify-between sm:w-72" aria-labelledby={`${id}-outcome-label ${id}-outcome-value`} aria-invalid={!!errors.outcome} aria-describedby={describe("outcome")} />}
++              >
++                <span id={`${id}-outcome-value`}>{outcome ? OUTCOME_LABEL[outcome] : "Choose an outcome"}</span> <Icon name="chevron-down" size={14} />
++              </DropdownMenuTrigger>
++              <DropdownMenuContent align="start">
++                <DropdownMenuRadioGroup value={outcome} onValueChange={(v) => setOutcome(v as OutcomeId)}>
++                  {OUTCOMES.map((o) => (
++                    <DropdownMenuRadioItem key={o} value={o}>
++                      {OUTCOME_LABEL[o]}
++                    </DropdownMenuRadioItem>
++                  ))}
++                </DropdownMenuRadioGroup>
++              </DropdownMenuContent>
++            </DropdownMenu>
++            {err("outcome")}
++          </div>
++
++          {p1 && (
++            <div className="grid gap-1 rounded-md border border-destructive/30 p-3 text-sm">
++              <p className="font-medium">
++                <Icon name="alert" size={14} className="mr-1 inline" />
++                Open priority-one escalation: {account.escalation?.title}
++              </p>
++              <label className="flex items-start gap-2">
++                <Checkbox checked={ack} onCheckedChange={(c) => setAck(c === true)} aria-invalid={!!errors.escalationAcknowledged} aria-describedby={describe("escalationAcknowledged")} className="mt-0.5" />
++                <span>I acknowledge this escalation is still open. Required to plan this account as "{OUTCOME_LABEL.renew_as_is.toLowerCase()}".</span>
++              </label>
++              {err("escalationAcknowledged")}
++            </div>
++          )}
++
++          <label className="grid gap-1 text-sm">
++            <span>
++              Next step{" "}
++              <span className="text-muted-foreground">{needsFollowUp(outcome) ? "(required)" : "(optional)"}</span>
++            </span>
++            <Input value={nextStep} onChange={(e) => setNextStep(e.target.value)} placeholder="For example: Executive call with the new sponsor" aria-invalid={!!errors.nextStep} aria-describedby={describe("nextStep")} />
++            {err("nextStep")}
++          </label>
++
++          <div className="flex flex-wrap items-start gap-3">
++            <label className="grid gap-1 text-sm">
++              <span>
++                Date for the next step <span className="text-muted-foreground">{needsFollowUp(outcome) ? "(required)" : "(optional)"}</span>
++              </span>
++              <Input type="date" min={today()} max={account.renewalDate} value={dueOn} onChange={(e) => setDueOn(e.target.value)} aria-invalid={!!errors.dueOn} aria-describedby={describe("dueOn")} />
++              {err("dueOn")}
++            </label>
++            <div className="grid gap-1 text-sm">
++              <span id={`${id}-owner-label`}>Owner</span>
++              <DropdownMenu>
++                <DropdownMenuTrigger render={<Button type="button" variant="outline" aria-labelledby={`${id}-owner-label ${id}-owner-value`} />}>
++                  <span id={`${id}-owner-value`}>{owner}</span> <Icon name="chevron-down" size={14} />
++                </DropdownMenuTrigger>
++                <DropdownMenuContent align="start">
++                  <DropdownMenuRadioGroup value={owner} onValueChange={(v) => setOwner(String(v))}>
++                    {OWNERS.map((o) => (
++                      <DropdownMenuRadioItem key={o} value={o}>
++                        {o}
++                      </DropdownMenuRadioItem>
++                    ))}
++                  </DropdownMenuRadioGroup>
++                </DropdownMenuContent>
++              </DropdownMenu>
++            </div>
++          </div>
++
++          {errorCount > 0 && (
++            <Alert variant="destructive">
++              <Icon name="alert" />
++              <AlertTitle>Plan not saved</AlertTitle>
++              <AlertDescription>Fix the {errorCount === 1 ? "field" : `${errorCount} fields`} marked above, then save again.</AlertDescription>
++            </Alert>
++          )}
++          {saveError && (
++            <Alert variant="destructive">
++              <Icon name="alert" />
++              <AlertTitle>Plan not saved</AlertTitle>
++              <AlertDescription>{saveError}</AlertDescription>
++            </Alert>
++          )}
++          <div className="flex flex-wrap items-center gap-2">
++            <Button type="submit" disabled={pending} className="w-full sm:w-auto">
++              {pending ? "Saving…" : plan ? "Save revision" : "Save plan"}
++            </Button>
++            {pending && (
++              <span role="status" className="text-sm text-muted-foreground">
++                Saving the plan…
++              </span>
++            )}
++          </div>
++        </form>
++      </section>
++    </article>
++  )
++}
+diff --git a/src/features/renewals/parts.tsx b/src/features/renewals/parts.tsx
+new file mode 100644
+index 0000000..11ef044
+--- /dev/null
++++ b/src/features/renewals/parts.tsx
+@@ -0,0 +1,34 @@
++import { Badge } from "@/components/ui/badge"
++import { Icon } from "@/components/ui/icon"
++import type { RenewalAccount } from "@/data/renewals"
++import { evidenceFor, riskLevel, RISK_LABEL } from "./rules"
++
++export function RiskBadge({ account }: { account: RenewalAccount }) {
++  const r = riskLevel(account)
++  return r === "high" ? (
++    <Badge variant="destructive">
++      <Icon name="alert" size={12} />
++      {RISK_LABEL[r]}
++    </Badge>
++  ) : (
++    <Badge variant={r === "medium" ? "secondary" : "outline"}>{RISK_LABEL[r]}</Badge>
++  )
++}
++
++const TONE_WORD = { negative: "Raises risk", positive: "Lowers risk", neutral: "No change in risk" } as const
++
++/** Evidence as a list. Tone is carried by text as well as colour. */
++export function EvidenceList({ account }: { account: RenewalAccount }) {
++  return (
++    <ul className="grid gap-2">
++      {evidenceFor(account).map((e) => (
++        <li key={e.id} className={e.tone === "negative" ? "rounded-md border border-destructive/30 p-3 text-sm" : "rounded-md border p-3 text-sm"}>
++          <p className="font-medium">
++            {e.label} <span className="text-xs font-normal text-muted-foreground">· {TONE_WORD[e.tone]}</span>
++          </p>
++          <p className="text-muted-foreground">{e.detail}</p>
++        </li>
++      ))}
++    </ul>
++  )
++}
+diff --git a/src/features/renewals/renewals.test.tsx b/src/features/renewals/renewals.test.tsx
+new file mode 100644
+index 0000000..c15c710
+--- /dev/null
++++ b/src/features/renewals/renewals.test.tsx
+@@ -0,0 +1,91 @@
++import { render, screen, waitFor, within } from "@testing-library/react"
++import userEvent from "@testing-library/user-event"
++import { describe, expect, it } from "vitest"
++
++import { SEED_RENEWALS } from "@/data/renewals"
++import Renewals from "./renewals"
++import { createRenewalStore } from "./store"
++
++const setup = (opts = {}, seed = SEED_RENEWALS) => {
++  const store = createRenewalStore(seed, { latencyMs: 0, ...opts })
++  render(<Renewals store={store} />)
++  return { store, user: userEvent.setup() }
++}
++const detail = () => screen.getByRole("region", { name: "Account detail" })
++const pick = async (user: ReturnType<typeof userEvent.setup>, name: RegExp) =>
++  user.click(within(screen.getByRole("list", { name: "All renewing accounts" })).getByRole("button", { name }))
++const choose = async (user: ReturnType<typeof userEvent.setup>, outcome: string) => {
++  await user.click(within(detail()).getByRole("button", { name: /Expected outcome/ }))
++  await user.click(await screen.findByRole("menuitemradio", { name: outcome }))
++}
++
++describe("Renewals page", () => {
++  it("loads, then shows the summary and the most urgent account first", async () => {
++    setup()
++    expect(screen.getByText("Loading renewals")).toBeInTheDocument()
++    expect(await screen.findByText(/14 accounts renewing in the next 90 days, 14 without a plan/)).toBeVisible()
++    const rows = within(screen.getByRole("list", { name: "All renewing accounts" })).getAllByRole("button")
++    expect(rows).toHaveLength(14)
++    expect(rows[0]).toHaveTextContent("Brightwell Logistics")
++    expect(within(detail()).getByRole("heading", { level: 2, name: /Brightwell Logistics/ })).toBeVisible()
++    expect(within(detail()).getByText("Overdue invoice")).toBeVisible()
++  })
++
++  it("shows empty and error states, and recovers with Retry", async () => {
++    const { user } = setup({ mode: "error" })
++    expect(await screen.findByText("Couldn't load renewals")).toBeVisible()
++    await user.click(screen.getByRole("button", { name: "Retry" }))
++    expect(await screen.findByText(/14 accounts renewing/)).toBeVisible()
++  })
++
++  it("shows the empty state", async () => {
++    setup({ mode: "empty" })
++    expect(await screen.findByText("No renewals in the next 90 days")).toBeVisible()
++  })
++
++  it("requires a next step and date for at risk, then records the plan and updates the summary", async () => {
++    const { user } = setup()
++    await screen.findByText(/14 accounts renewing/)
++    await pick(user, /Cobalt Freight/)
++    await choose(user, "At risk, needs intervention")
++    await user.click(within(detail()).getByRole("button", { name: "Save plan" }))
++    expect(await within(detail()).findByText(/Name the next step/)).toBeVisible()
++    expect(within(detail()).getByText("Choose a date for the next step.")).toBeVisible()
++    await user.type(within(detail()).getByLabelText(/Next step/), "Executive call")
++    await user.type(within(detail()).getByLabelText(/Date for the next step/), "2026-10-30")
++    await user.click(within(detail()).getByRole("button", { name: "Save plan" }))
++    expect(await screen.findByText(/Plan recorded for Cobalt Freight/)).toBeVisible()
++    expect(screen.getByText(/1 of 14 accounts have a plan/)).toBeVisible()
++    expect(screen.getByText(/13 without a plan/)).toBeVisible()
++    await user.click(screen.getByRole("button", { name: "Undo" }))
++    await waitFor(() => expect(screen.getByText(/14 without a plan/)).toBeVisible())
++  })
++
++  it("blocks renew as is with an open P1 until acknowledged, and a plan can be revised", async () => {
++    const { user } = setup()
++    await screen.findByText(/14 accounts renewing/)
++    await pick(user, /Meridian Legal/)
++    await choose(user, "Renew as is")
++    await user.click(within(detail()).getByRole("button", { name: "Save plan" }))
++    expect(await within(detail()).findByText(/Acknowledge the open priority-one escalation/)).toBeVisible()
++    await user.click(within(detail()).getByRole("checkbox"))
++    await user.click(within(detail()).getByRole("button", { name: "Save plan" }))
++    expect(await screen.findByText(/Plan recorded for Meridian Legal: renew as is/)).toBeVisible()
++    await choose(user, "Expected to churn")
++    await user.type(within(detail()).getByLabelText(/Next step/), "Exit interview")
++    await user.type(within(detail()).getByLabelText(/Date for the next step/), "2026-11-20")
++    await user.click(within(detail()).getByRole("button", { name: "Save revision" }))
++    expect(await screen.findByText(/Plan revised for Meridian Legal: expected to churn/)).toBeVisible()
++  })
++
++  it("keeps the form and says so when a save fails", async () => {
++    const { user } = setup({ failSave: true })
++    await screen.findByText(/14 accounts renewing/)
++    await pick(user, /Cobalt Freight/)
++    await choose(user, "Renew as is")
++    await user.click(within(detail()).getByRole("button", { name: "Save plan" }))
++    expect(await within(detail()).findByText(/The plan wasn't saved/)).toBeVisible()
++    await user.click(within(detail()).getByRole("button", { name: "Save plan" }))
++    expect(await screen.findByText(/Plan recorded for Cobalt Freight/)).toBeVisible()
++  })
++})
+diff --git a/src/features/renewals/renewals.tsx b/src/features/renewals/renewals.tsx
+new file mode 100644
+index 0000000..5730b4c
+--- /dev/null
++++ b/src/features/renewals/renewals.tsx
+@@ -0,0 +1,211 @@
++/**
++ * Renewal risk review. Product decision supported: "Which renewing accounts are at risk, why, and what will I do
++ * before the renewal date?" Reuses the approved queue-workspace pattern (list beside the selected record, a
++ * Sheet on phones) from lead triage; it is built locally in this feature, not promoted (see the decision log).
++ */
++import * as React from "react"
++
++import { UndoNotice } from "@/components/shared/undo-notice"
++import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
++import { Button } from "@/components/ui/button"
++import { Card, CardContent } from "@/components/ui/card"
++import { Icon } from "@/components/ui/icon"
++import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
++import { Skeleton } from "@/components/ui/skeleton"
++import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
++import { useIsMobile } from "@/hooks/use-mobile"
++import type { RenewalAccount } from "@/data/renewals"
++import { cn } from "@/lib/utils"
++
++import { money } from "../triage/format"
++import { AccountDetail } from "./account-detail"
++import { RiskBadge } from "./parts"
++import { OUTCOME_LABEL, compareByUrgency, fmtDay, renewsIn, summarize } from "./rules"
++import { useRenewals, type PlanLogEntry, type RenewalStore } from "./store"
++
++type Filter = "all" | "needs_plan" | "planned"
++const FILTER_LABEL: Record<Filter, string> = { all: "All renewing", needs_plan: "Needs a plan", planned: "Planned" }
++
++function Stat({ label, value, note }: { label: string; value: string; note: string }) {
++  return (
++    <Card size="sm">
++      <CardContent className="grid gap-0.5">
++        <p className="text-xs text-muted-foreground">{label}</p>
++        <p className="text-xl font-semibold">{value}</p>
++        <p className="text-xs text-muted-foreground">{note}</p>
++      </CardContent>
++    </Card>
++  )
++}
++
++export default function Renewals({ store: injected }: { store?: RenewalStore } = {}) {
++  const { load, error, accounts, plans, store } = useRenewals(injected)
++  const isMobile = useIsMobile()
++  const [filter, setFilter] = React.useState<Filter>("all")
++  const [selectedId, setSelectedId] = React.useState<string | null>(null)
++  const [banner, setBanner] = React.useState<PlanLogEntry | null>(null)
++
++  const ordered = React.useMemo(() => [...accounts].sort(compareByUrgency), [accounts])
++  const visible = ordered.filter((a) => filter === "all" || (filter === "planned") === !!plans[a.id])
++  const s = summarize(accounts, plans)
++  const counts: Record<Filter, number> = { all: s.total, needs_plan: s.withoutPlan, planned: s.withPlan }
++  const selected: RenewalAccount | undefined = visible.find((a) => a.id === selectedId) ?? (isMobile ? undefined : (accounts.find((a) => a.id === selectedId) ?? visible[0]))
++
++  function onSaved(entry: PlanLogEntry) {
++    setBanner(entry)
++    if (isMobile) setSelectedId(null) // close the sheet so the confirmation and Undo are in view
++  }
++  async function undo(entry: PlanLogEntry): Promise<boolean> {
++    const ok = await store.undo(entry.id)
++    if (ok) {
++      setBanner(null)
++      setSelectedId(entry.accountId)
++    }
++    return ok
++  }
++
++  return (
++    <div className="grid gap-4">
++      <div>
++        <h1 className="text-xl font-semibold">Renewal risk review</h1>
++        <p className="text-sm text-muted-foreground" aria-live="polite">
++          {load === "ready" ? `${s.total} accounts renewing in the next 90 days, ${s.withoutPlan} without a plan` : load === "loading" ? "Loading…" : ""}
++        </p>
++      </div>
++
++      {banner && (
++        <UndoNotice
++          actionId={banner.id}
++          message={banner.message}
++          detail={`${s.withPlan} of ${s.total} accounts have a plan. ${money(s.arrAtRisk)} ARR at risk.`}
++          onUndo={() => undo(banner)}
++        />
++      )}
++
++      {load === "error" ? (
++        <Alert variant="destructive">
++          <Icon name="alert" />
++          <AlertTitle>Couldn't load renewals</AlertTitle>
++          <AlertDescription>{error}</AlertDescription>
++          <AlertAction>
++            <Button size="sm" variant="outline" onClick={() => void store.load({ retry: true })}>
++              Retry
++            </Button>
++          </AlertAction>
++        </Alert>
++      ) : load === "loading" ? (
++        <div className="grid gap-3" aria-busy="true">
++          <p className="sr-only" role="status">Loading renewals</p>
++          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4" aria-hidden>
++            {Array.from({ length: 4 }, (_, i) => (
++              <Skeleton key={i} className="h-20 w-full" />
++            ))}
++          </div>
++          <div className="grid gap-3 lg:grid-cols-5" aria-hidden>
++            <div className="grid content-start gap-2 lg:col-span-2">
++              {Array.from({ length: 6 }, (_, i) => (
++                <Skeleton key={i} className="h-16 w-full" />
++              ))}
++            </div>
++            <Skeleton className="hidden h-96 w-full lg:col-span-3 lg:block" />
++          </div>
++        </div>
++      ) : accounts.length === 0 ? (
++        <Card>
++          <CardContent className="py-8 text-center">
++            <p className="font-medium">No renewals in the next 90 days</p>
++            <p className="text-sm text-muted-foreground">Accounts appear here when their contract renews within 90 days.</p>
++          </CardContent>
++        </Card>
++      ) : (
++        <>
++          <section aria-label="Portfolio summary">
++            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
++              <Stat label="ARR renewing" value={money(s.arrRenewing)} note={`${s.total} accounts`} />
++              <Stat label="ARR at risk" value={money(s.arrAtRisk)} note={`${s.accountsAtRisk} accounts`} />
++              <Stat label="With a plan" value={String(s.withPlan)} note={`of ${s.total} accounts`} />
++              <Stat label="Without a plan" value={String(s.withoutPlan)} note={s.withoutPlan ? "still to plan" : "all planned"} />
++            </div>
++            <p className="mt-1 text-xs text-muted-foreground">
++              Revenue is annual recurring revenue in US dollars. An account counts as at risk when its plan says at risk or expected to churn; until it has a plan, when its assessed risk is high.
++            </p>
++          </section>
++
++          <div className="grid gap-4 lg:grid-cols-5">
++            <section aria-label="Renewing accounts" className="grid content-start gap-3 lg:col-span-2">
++              <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
++                <TabsList className="group-data-horizontal/tabs:h-auto grid w-full grid-cols-3 gap-1 sm:inline-flex sm:w-fit">
++                  {(Object.keys(FILTER_LABEL) as Filter[]).map((f) => (
++                    <TabsTrigger key={f} value={f} className="h-9">
++                      {FILTER_LABEL[f]} <span className="ml-1">{counts[f]}</span>
++                    </TabsTrigger>
++                  ))}
++                </TabsList>
++              </Tabs>
++              {visible.length === 0 ? (
++                <p className="rounded-md border p-4 text-sm text-muted-foreground">
++                  {filter === "needs_plan" ? "Every renewing account has a plan." : "No plans yet. Accounts you plan appear here."}
++                </p>
++              ) : (
++                <ul className="grid gap-1" aria-label={`${FILTER_LABEL[filter]} accounts`}>
++                  {visible.map((a) => (
++                    <li key={a.id}>
++                      <button
++                        type="button"
++                        aria-current={selected?.id === a.id ? "true" : undefined}
++                        onClick={() => setSelectedId(a.id)}
++                        className={cn(
++                          "grid w-full gap-1 rounded-md border p-3 text-left outline-none transition-colors hover:border-foreground/40 focus-visible:ring-3 focus-visible:ring-ring/50",
++                          selected?.id === a.id && "border-primary ring-1 ring-primary"
++                        )}
++                      >
++                        <span className="flex items-start justify-between gap-2">
++                          <span className="font-medium">{a.name}</span>
++                          <RiskBadge account={a} />
++                        </span>
++                        <span className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
++                          <span>{renewsIn(a)} · {fmtDay(a.renewalDate)}</span>
++                          <span>{money(a.arr)}</span>
++                        </span>
++                        <span className="text-xs text-muted-foreground">{plans[a.id] ? `Plan: ${OUTCOME_LABEL[plans[a.id].outcome]}` : "No plan yet"}</span>
++                      </button>
++                    </li>
++                  ))}
++                </ul>
++              )}
++              <p className="text-xs text-muted-foreground">
++                Ordered by risk, weighted up as the renewal date gets closer. Ties go to the sooner renewal, then the larger ARR.
++              </p>
++            </section>
++
++            {!isMobile && (
++              <section aria-label="Account detail" className="lg:col-span-3">
++                {selected ? (
++                  <AccountDetail key={selected.id + (plans[selected.id]?.revision ?? 0)} account={selected} plan={plans[selected.id]} store={store} onSaved={onSaved} />
++                ) : (
++                  <p className="rounded-md border p-6 text-sm text-muted-foreground">Select an account to review it.</p>
++                )}
++              </section>
++            )}
++          </div>
++        </>
++      )}
++
++      {isMobile && (
++        <Sheet open={!!selected} onOpenChange={(o) => !o && setSelectedId(null)}>
++          <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
++            <SheetHeader>
++              <SheetTitle>{selected?.name}</SheetTitle>
++              <SheetDescription>Review the evidence, then record a plan.</SheetDescription>
++            </SheetHeader>
++            {selected && (
++              <div className="px-4 pb-4">
++                <AccountDetail key={selected.id + (plans[selected.id]?.revision ?? 0)} account={selected} plan={plans[selected.id]} store={store} onSaved={onSaved} />
++              </div>
++            )}
++          </SheetContent>
++        </Sheet>
++      )}
++    </div>
++  )
++}
+diff --git a/src/features/renewals/rules.test.ts b/src/features/renewals/rules.test.ts
+new file mode 100644
+index 0000000..5608e4a
+--- /dev/null
++++ b/src/features/renewals/rules.test.ts
+@@ -0,0 +1,76 @@
++import { describe, expect, it } from "vitest"
++
++import { SEED_RENEWALS } from "@/data/renewals"
++import { compareByUrgency, evidenceFor, hasOpenP1, riskLevel, summarize, validatePlan, buildPlan, today } from "./rules"
++
++const acct = (name: string) => SEED_RENEWALS.find((a) => a.name === name)!
++const base = { outcome: "renew_as_is" as const, nextStep: "", owner: "Sam Rivera", dueOn: "", escalationAcknowledged: false }
++
++describe("renewal rules", () => {
++  it("has 14 accounts renewing within 90 days", () => {
++    expect(SEED_RENEWALS).toHaveLength(14)
++    for (const a of SEED_RENEWALS) {
++      const d = (Date.parse(a.renewalDate) - Date.parse(today())) / 86_400_000
++      expect(d).toBeGreaterThan(0)
++      expect(d).toBeLessThanOrEqual(90)
++    }
++  })
++
++  it("orders by risk weighted by closeness, then renewal date, then ARR", () => {
++    const order = [...SEED_RENEWALS].sort(compareByUrgency).map((a) => a.name)
++    expect(order[0]).toBe("Brightwell Logistics")
++    expect(order.indexOf("Meridian Legal")).toBeLessThan(order.indexOf("Cobalt Freight"))
++    expect(order.indexOf("Sable Hospitality")).toBeGreaterThan(order.indexOf("Ardent Biotech")) // renews soonest but nothing wrong
++    expect(order.indexOf("Sable Hospitality")).toBeLessThan(order.indexOf("Cobalt Freight")) // ties go to the sooner renewal
++  })
++
++  it("explains risk with evidence, positives lowering it", () => {
++    expect(evidenceFor(acct("Brightwell Logistics")).map((e) => e.id)).toEqual(expect.arrayContaining(["usage", "escalation", "champion", "invoice"]))
++    expect(riskLevel(acct("Brightwell Logistics"))).toBe("high")
++    expect(riskLevel(acct("Northgate Energy"))).toBe("low")
++  })
++
++  it("blocks renew as is with an open P1 until acknowledged", () => {
++    const a = acct("Meridian Legal")
++    expect(hasOpenP1(a)).toBe(true)
++    expect(validatePlan(a, base).escalationAcknowledged).toBeTruthy()
++    expect(validatePlan(a, { ...base, escalationAcknowledged: true })).toEqual({})
++    expect(validatePlan(a, { ...base, outcome: "renew_expand" })).toEqual({})
++    expect(validatePlan(acct("Cobalt Freight"), base)).toEqual({})
++  })
++
++  it("requires a next step and a date for at risk and churn only", () => {
++    const a = acct("Cobalt Freight")
++    for (const outcome of ["at_risk", "churn"] as const) {
++      const e = validatePlan(a, { ...base, outcome })
++      expect(e.nextStep).toBeTruthy()
++      expect(e.dueOn).toBeTruthy()
++    }
++    expect(validatePlan(a, { ...base, outcome: "at_risk", nextStep: "Call", dueOn: "2026-10-20" })).toEqual({})
++    expect(validatePlan(a, { ...base, outcome: "renew_expand" })).toEqual({})
++  })
++
++  it("rejects dates in the past or after the renewal", () => {
++    const a = acct("Cobalt Freight")
++    expect(validatePlan(a, { ...base, dueOn: "2026-10-01" }).dueOn).toBeTruthy()
++    expect(validatePlan(a, { ...base, dueOn: "2027-02-01" }).dueOn).toBeTruthy()
++  })
++
++  it("keeps the summary accurate as plans change", () => {
++    const none = summarize(SEED_RENEWALS, {})
++    expect(none.total).toBe(14)
++    expect(none.withPlan).toBe(0)
++    expect(none.arrRenewing).toBe(SEED_RENEWALS.reduce((s, a) => s + a.arr, 0))
++    const cobalt = acct("Cobalt Freight")
++    const atRisk = buildPlan(cobalt, { ...base, outcome: "churn", nextStep: "x", dueOn: "2026-10-20" })
++    const s1 = summarize(SEED_RENEWALS, { [cobalt.id]: atRisk })
++    expect(s1.withPlan).toBe(1)
++    expect(s1.withoutPlan).toBe(13)
++    expect(s1.arrAtRisk).toBe(none.arrAtRisk + cobalt.arr)
++    // a plan can take a high-risk account out of "at risk"
++    const meridian = acct("Meridian Legal")
++    const ok = buildPlan(meridian, { ...base, outcome: "renew_expand", owner: "Sam Rivera" })
++    expect(summarize(SEED_RENEWALS, { [meridian.id]: ok }).arrAtRisk).toBe(none.arrAtRisk - meridian.arr)
++    expect(buildPlan(meridian, base, ok).revision).toBe(2)
++  })
++})
+diff --git a/src/features/renewals/rules.ts b/src/features/renewals/rules.ts
+new file mode 100644
+index 0000000..7feb9da
+--- /dev/null
++++ b/src/features/renewals/rules.ts
+@@ -0,0 +1,151 @@
++/**
++ * Renewal risk rules. Every product assumption about risk, order, the summary and plan validity lives here
++ * and is covered by rules.test.ts. See docs/PRODUCT-ASSUMPTIONS.md (renewal risk review).
++ */
++import { NOW } from "@/data/clientops"
++import type { OutcomeId, RenewalAccount, RenewalPlan } from "@/data/renewals"
++
++export type RiskLevel = "high" | "medium" | "low"
++export interface Evidence {
++  id: string
++  tone: "negative" | "positive" | "neutral"
++  label: string
++  detail: string
++  /** Contribution to the risk score; positive raises risk. */
++  points: number
++}
++
++export const OUTCOME_LABEL: Record<OutcomeId, string> = {
++  renew_as_is: "Renew as is",
++  renew_expand: "Renew with expansion",
++  at_risk: "At risk, needs intervention",
++  churn: "Expected to churn",
++}
++export const OUTCOMES = Object.keys(OUTCOME_LABEL) as OutcomeId[]
++/** Outcomes that need a next step and a date. */
++export const NEEDS_FOLLOW_UP: OutcomeId[] = ["at_risk", "churn"]
++export const RISK_LABEL: Record<RiskLevel, string> = { high: "High risk", medium: "Medium risk", low: "Low risk" }
++
++const DAY = 86_400_000
++export const today = () => new Date(NOW).toISOString().slice(0, 10)
++export const daysUntil = (isoDay: string) => Math.round((Date.parse(`${isoDay}T00:00:00Z`) - Date.parse(`${today()}T00:00:00Z`)) / DAY)
++
++export function fmtDay(isoDay: string): string {
++  return new Date(`${isoDay}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
++}
++
++export function renewsIn(a: RenewalAccount): string {
++  const d = daysUntil(a.renewalDate)
++  return d === 0 ? "Renews today" : d === 1 ? "Renews tomorrow" : `Renews in ${d} days`
++}
++
++/** The evidence behind an account's risk, strongest first. */
++export function evidenceFor(a: RenewalAccount): Evidence[] {
++  const out: Evidence[] = []
++  const u = a.usageChangePct
++  if (u <= -30) out.push({ id: "usage", tone: "negative", label: "Product usage falling sharply", detail: `Usage is down ${Math.abs(u)}% over the last 90 days.`, points: 30 })
++  else if (u <= -15) out.push({ id: "usage", tone: "negative", label: "Product usage falling", detail: `Usage is down ${Math.abs(u)}% over the last 90 days.`, points: 15 })
++  else if (u >= 10) out.push({ id: "usage", tone: "positive", label: "Product usage growing", detail: `Usage is up ${u}% over the last 90 days.`, points: -10 })
++  else out.push({ id: "usage", tone: "neutral", label: "Product usage steady", detail: `Usage changed ${u > 0 ? "+" : u < 0 ? "-" : ""}${Math.abs(u)}% over the last 90 days.`, points: 0 })
++
++  const e = a.escalation
++  if (e && e.status === "open" && e.priority <= 2)
++    out.push({ id: "escalation", tone: "negative", label: `Open priority-${e.priority === 1 ? "one" : "two"} support escalation`, detail: `${e.title}. Opened ${fmtDay(e.openedOn)}.`, points: e.priority === 1 ? 35 : 15 })
++
++  if (a.champion.status === "left")
++    out.push({ id: "champion", tone: "negative", label: "Champion has left", detail: `${a.champion.name}, ${a.champion.role}, left${a.champion.leftOn ? ` on ${fmtDay(a.champion.leftOn)}` : ""}.`, points: 25 })
++
++  const inv = a.overdueInvoice
++  if (inv)
++    out.push({ id: "invoice", tone: "negative", label: "Overdue invoice", detail: `${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(inv.amount)} is ${inv.daysOverdue} days overdue.`, points: inv.daysOverdue > 30 ? 20 : 10 })
++
++  a.positives.forEach((p, i) => out.push({ id: `positive-${i}`, tone: "positive", label: "Recent positive signal", detail: `${p.text}. ${fmtDay(p.on)}.`, points: -10 }))
++
++  return out.sort((x, y) => Math.abs(y.points) - Math.abs(x.points))
++}
++
++export function riskScore(a: RenewalAccount): number {
++  return Math.max(0, Math.min(100, evidenceFor(a).reduce((s, e) => s + e.points, 0)))
++}
++export const riskLevel = (a: RenewalAccount): RiskLevel => {
++  const s = riskScore(a)
++  return s >= 50 ? "high" : s >= 25 ? "medium" : "low"
++}
++
++/** Risk, weighted up the closer the renewal date is. */
++export function urgency(a: RenewalAccount): number {
++  const d = daysUntil(a.renewalDate)
++  return riskScore(a) * (d <= 14 ? 1.5 : d <= 30 ? 1.3 : d <= 60 ? 1.15 : 1)
++}
++/** Most urgent first; then the sooner renewal; then the larger ARR. */
++export function compareByUrgency(a: RenewalAccount, b: RenewalAccount): number {
++  return urgency(b) - urgency(a) || daysUntil(a.renewalDate) - daysUntil(b.renewalDate) || b.arr - a.arr
++}
++
++export const hasOpenP1 = (a: RenewalAccount) => !!a.escalation && a.escalation.status === "open" && a.escalation.priority === 1
++
++/** Is this account's ARR counted as at risk? The plan wins over the assessment once there is one. */
++export function isAtRisk(a: RenewalAccount, plan?: RenewalPlan): boolean {
++  if (plan) return plan.outcome === "at_risk" || plan.outcome === "churn"
++  return riskLevel(a) === "high"
++}
++
++export interface Summary {
++  total: number
++  arrRenewing: number
++  arrAtRisk: number
++  accountsAtRisk: number
++  withPlan: number
++  withoutPlan: number
++}
++export function summarize(accounts: RenewalAccount[], plans: Record<string, RenewalPlan>): Summary {
++  const risky = accounts.filter((a) => isAtRisk(a, plans[a.id]))
++  const withPlan = accounts.filter((a) => plans[a.id]).length
++  return {
++    total: accounts.length,
++    arrRenewing: accounts.reduce((s, a) => s + a.arr, 0),
++    arrAtRisk: risky.reduce((s, a) => s + a.arr, 0),
++    accountsAtRisk: risky.length,
++    withPlan,
++    withoutPlan: accounts.length - withPlan,
++  }
++}
++
++export interface PlanInput {
++  outcome: OutcomeId | ""
++  nextStep: string
++  owner: string
++  dueOn: string
++  escalationAcknowledged: boolean
++}
++export type PlanErrors = Partial<Record<"outcome" | "nextStep" | "owner" | "dueOn" | "escalationAcknowledged", string>>
++
++export function validatePlan(a: RenewalAccount, p: PlanInput): PlanErrors {
++  const err: PlanErrors = {}
++  if (!p.outcome) err.outcome = "Choose the expected outcome."
++  if (!p.owner) err.owner = "Choose who owns the next step."
++  if (p.outcome && NEEDS_FOLLOW_UP.includes(p.outcome)) {
++    if (!p.nextStep.trim()) err.nextStep = `Name the next step. A plan marked "${OUTCOME_LABEL[p.outcome].toLowerCase()}" needs one.`
++    if (!p.dueOn) err.dueOn = "Choose a date for the next step."
++  }
++  if (p.dueOn) {
++    if (p.dueOn < today()) err.dueOn = "Choose today or a later date."
++    else if (p.dueOn > a.renewalDate) err.dueOn = `Choose a date on or before the renewal on ${fmtDay(a.renewalDate)}.`
++  }
++  if (p.outcome === "renew_as_is" && hasOpenP1(a) && !p.escalationAcknowledged)
++    err.escalationAcknowledged = "Acknowledge the open priority-one escalation to plan this as renew as is."
++  return err
++}
++
++export function buildPlan(a: RenewalAccount, p: PlanInput, prev?: RenewalPlan): RenewalPlan {
++  return {
++    accountId: a.id,
++    outcome: p.outcome as OutcomeId,
++    nextStep: p.nextStep.trim(),
++    owner: p.owner,
++    dueOn: p.dueOn,
++    escalationAcknowledged: hasOpenP1(a) && p.escalationAcknowledged,
++    revision: (prev?.revision ?? 0) + 1,
++    updatedAt: new Date(NOW).toISOString(),
++  }
++}
+diff --git a/src/features/renewals/store.ts b/src/features/renewals/store.ts
+new file mode 100644
+index 0000000..354e397
+--- /dev/null
++++ b/src/features/renewals/store.ts
+@@ -0,0 +1,129 @@
++/**
++ * The renewals store: accounts and the renewal plans recorded on them.
++ * Like the triage store it behaves like a network client (latency, failure) so loading, empty and
++ * error are real states. Review switches (URL query): ?state=loading | empty | error  and  ?fail=save
++ */
++import * as React from "react"
++
++import { SEED_RENEWALS, type RenewalAccount, type RenewalPlan } from "@/data/renewals"
++import { buildPlan, validatePlan, OUTCOME_LABEL, type PlanInput } from "./rules"
++
++export interface PlanLogEntry {
++  id: string
++  accountId: string
++  message: string
++  /** The plan as it stood before this save (undefined: there was none), for undo. */
++  before?: RenewalPlan
++}
++
++export type LoadState = "loading" | "error" | "ready"
++export interface RenewalSnapshot {
++  load: LoadState
++  error?: string
++  accounts: RenewalAccount[]
++  plans: Record<string, RenewalPlan>
++  log: PlanLogEntry[]
++}
++export interface StoreOptions {
++  latencyMs?: number
++  mode?: "normal" | "loading" | "empty" | "error"
++  failSave?: boolean
++}
++
++const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
++
++export function createRenewalStore(seed: RenewalAccount[] = SEED_RENEWALS, opts: StoreOptions = {}) {
++  const latency = opts.latencyMs ?? 450
++  let saveFailures = opts.failSave ? 1 : 0
++  let snap: RenewalSnapshot = { load: "loading", accounts: [], plans: {}, log: [] }
++  let seq = 0
++  const listeners = new Set<() => void>()
++  const set = (next: Partial<RenewalSnapshot>) => {
++    snap = { ...snap, ...next }
++    listeners.forEach((l) => l())
++  }
++  let inflight: Promise<void> | null = null
++
++  /** In review mode "error" every automatic load fails and only an explicit retry succeeds. */
++  function load(options: { retry?: boolean } = {}): Promise<void> {
++    if (inflight && !options.retry) return inflight
++    inflight = (async () => {
++      set({ load: "loading", error: undefined })
++      if (opts.mode === "loading") return new Promise<void>(() => {})
++      await wait(latency)
++      if (opts.mode === "error" && !options.retry) {
++        set({ load: "error", error: "We couldn't load your renewals. Check your connection and try again." })
++        return
++      }
++      set({ load: "ready", accounts: opts.mode === "empty" ? [] : seed.map((a) => ({ ...a })) })
++    })().finally(() => {
++      inflight = null
++    })
++    return inflight
++  }
++
++  /** Record a plan, or revise the one already there. The rules are enforced here, not only in the form. */
++  async function savePlan(accountId: string, input: PlanInput): Promise<{ ok: true; entry: PlanLogEntry } | { ok: false; error: string }> {
++    await wait(latency)
++    if (saveFailures > 0) {
++      saveFailures -= 1
++      return { ok: false, error: "The plan wasn't saved. Nothing changed; try again." }
++    }
++    const account = snap.accounts.find((a) => a.id === accountId)
++    if (!account) return { ok: false, error: "That account is no longer in your renewals." }
++    const errors = validatePlan(account, input)
++    const first = Object.values(errors)[0]
++    if (first) return { ok: false, error: first }
++    const before = snap.plans[accountId]
++    const plan = buildPlan(account, input, before)
++    const entry: PlanLogEntry = {
++      id: `P-${++seq}`,
++      accountId,
++      before,
++      message: `${before ? "Plan revised" : "Plan recorded"} for ${account.name}: ${OUTCOME_LABEL[plan.outcome].toLowerCase()}.`,
++    }
++    set({ plans: { ...snap.plans, [accountId]: plan }, log: [entry, ...snap.log] })
++    return { ok: true, entry }
++  }
++
++  async function undo(entryId: string): Promise<boolean> {
++    const entry = snap.log.find((e) => e.id === entryId)
++    if (!entry) return false
++    await wait(latency / 2)
++    const plans = { ...snap.plans }
++    if (entry.before) plans[entry.accountId] = entry.before
++    else delete plans[entry.accountId]
++    set({ plans, log: snap.log.filter((e) => e.id !== entryId) })
++    return true
++  }
++
++  return {
++    load,
++    savePlan,
++    undo,
++    getSnapshot: () => snap,
++    subscribe: (l: () => void) => {
++      listeners.add(l)
++      return () => listeners.delete(l)
++    },
++  }
++}
++
++export type RenewalStore = ReturnType<typeof createRenewalStore>
++
++const params = typeof window === "undefined" ? new URLSearchParams() : new URLSearchParams(window.location.search)
++const stateParam = params.get("state")
++
++/** The app's store. Review switches are read once from the URL. */
++export const renewalStore = createRenewalStore(SEED_RENEWALS, {
++  mode: stateParam === "loading" || stateParam === "empty" || stateParam === "error" ? stateParam : "normal",
++  failSave: params.get("fail") === "save",
++})
++
++export function useRenewals(store: RenewalStore = renewalStore) {
++  const snapshot = React.useSyncExternalStore(store.subscribe, store.getSnapshot)
++  React.useEffect(() => {
++    if (store.getSnapshot().load === "loading" && store.getSnapshot().accounts.length === 0) void store.load()
++  }, [store])
++  return { ...snapshot, store }
++}
+diff --git a/src/lib/ambient/stubs/index.ts b/src/lib/ambient/stubs/index.ts
+index 40eea92..54f9fc4 100644
+--- a/src/lib/ambient/stubs/index.ts
++++ b/src/lib/ambient/stubs/index.ts
+@@ -5,9 +5,10 @@ import type { AmbientApiHandlers } from "@/components/ambient/responder"
+ import { FALLBACK } from "./fallback"
+ import { ds } from "./ds"
+ import { home } from "./home"
++import { renewals } from "./renewals"
+ import { triage } from "./triage"
+ 
+-const PAGES = { home, triage, ds } // keyed by each page's setPageChip id
++const PAGES = { home, triage, renewals, ds } // keyed by each page's setPageChip id
+ const LATENCY_MS = 400
+ 
+ const settle = <T,>(value: T, signal: AbortSignal) =>
+diff --git a/src/lib/ambient/stubs/renewals.ts b/src/lib/ambient/stubs/renewals.ts
+new file mode 100644
+index 0000000..98e0c9c
+--- /dev/null
++++ b/src/lib/ambient/stubs/renewals.ts
+@@ -0,0 +1,70 @@
++import { SEED_RENEWALS } from "@/data/renewals"
++import { compareByUrgency, daysUntil, evidenceFor, hasOpenP1, riskLevel, summarize } from "@/features/renewals/rules"
++import { renewalStore } from "@/features/renewals/store"
++import { money } from "@/features/triage/format"
++
++import { page } from "./pairs"
++
++const accounts = () => {
++  const a = renewalStore.getSnapshot().accounts
++  return a.length ? a : SEED_RENEWALS
++}
++const plans = () => renewalStore.getSnapshot().plans
++
++export const renewals = page([
++  {
++    ask: "Which renewing account needs me most?",
++    match: /most|first|urgent|priorit|next/i,
++    answer: () => {
++      const a = [...accounts()].sort(compareByUrgency)[0]
++      return {
++        text: `${a.name} (${money(a.arr)}, renews in ${daysUntil(a.renewalDate)} days). ${evidenceFor(a).filter((e) => e.tone === "negative").map((e) => e.label.toLowerCase()).join(", ") || "No warning signs, but the renewal is close"}.`,
++        refs: [],
++        followUps: ["How much revenue is at risk?", "Which accounts have no plan?"],
++      }
++    },
++  },
++  {
++    ask: "How much revenue is at risk?",
++    match: /revenue|arr|risk/i,
++    answer: () => {
++      const s = summarize(accounts(), plans())
++      return {
++        text: `${money(s.arrAtRisk)} of ${money(s.arrRenewing)} ARR renewing is at risk, across ${s.accountsAtRisk} accounts. Once an account has a plan, its planned outcome decides; until then, high assessed risk does.`,
++        refs: [],
++        followUps: ["Which accounts have no plan?"],
++      }
++    },
++  },
++  {
++    ask: "Which accounts have no plan?",
++    match: /plan|missing|without/i,
++    answer: () => {
++      const open = [...accounts()].filter((a) => !plans()[a.id]).sort(compareByUrgency)
++      return {
++        text: open.length ? `${open.length} accounts still need a plan. Most urgent: ${open.slice(0, 3).map((a) => a.name).join(", ")}.` : "Every renewing account has a plan.",
++        refs: [],
++        followUps: ["Which accounts have an open priority-one escalation?"],
++      }
++    },
++  },
++  {
++    ask: "Which accounts have an open priority-one escalation?",
++    match: /escalat|p1|priority/i,
++    answer: () => {
++      const p1 = accounts().filter(hasOpenP1)
++      return {
++        text: p1.length ? `${p1.map((a) => a.name).join(", ")}. These cannot be planned as renew as is until the plan acknowledges the escalation.` : "No renewing account has an open priority-one escalation.",
++        refs: [],
++      }
++    },
++  },
++  {
++    ask: "Which accounts are high risk?",
++    match: /high|worst|danger/i,
++    answer: () => {
++      const hi = accounts().filter((a) => riskLevel(a) === "high").sort(compareByUrgency)
++      return { text: hi.length ? hi.map((a) => `${a.name} (${money(a.arr)})`).join("; ") + "." : "No renewing account is assessed as high risk.", refs: [] }
++    },
++  },
++])
+diff --git a/src/lib/ambient/stubs/stubs.test.ts b/src/lib/ambient/stubs/stubs.test.ts
+index 2e5c08d..61be4fe 100644
+--- a/src/lib/ambient/stubs/stubs.test.ts
++++ b/src/lib/ambient/stubs/stubs.test.ts
+@@ -4,6 +4,8 @@ import { auditAmbientApi } from "@/components/ambient/stub-audit"
+ import { createTriageStore } from "@/features/triage/store"
+ import { triageStore } from "@/features/triage/store"
+ 
++import { renewalStore } from "@/features/renewals/store"
++
+ import { stubs } from "./index"
+ 
+ describe("assistant stubs", () => {
+@@ -12,9 +14,11 @@ describe("assistant stubs", () => {
+     const seeded = createTriageStore(undefined, { latencyMs: 0 })
+     await seeded.load()
+     await triageStore.load()
++    await renewalStore.load()
+     const problems = await auditAmbientApi(stubs, [
+       { id: "home", label: "Overview" },
+       { id: "triage", label: "Lead triage" },
++      { id: "renewals", label: "Renewals" },
+       { id: "ds", label: "Design system" },
+     ])
+     expect(problems).toEqual([])
+diff --git a/src/nav.ts b/src/nav.ts
+index ed8335d..f6ec28a 100644
+--- a/src/nav.ts
++++ b/src/nav.ts
+@@ -3,5 +3,6 @@ import type { IconName } from "@/components/ui/icon"
+ export const NAV: { id: string; path: string; label: string; desc: string; icon: IconName }[] = [
+   { id: "home", path: "/", label: "Overview", desc: "ClientOps overview", icon: "home" },
+   { id: "triage", path: "/triage", label: "Lead triage", desc: "Review incoming leads and decide what to do next", icon: "layers" },
++  { id: "renewals", path: "/accounts/renewals", label: "Renewals", desc: "Review accounts renewing in the next 90 days and plan each one", icon: "calendar" },
+   { id: "ds", path: "/ds", label: "Design system", desc: "Foundation, components, governance", icon: "palette" },
+ ]
