@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@import "tailwindcss" theme(static);
+@import "./styles/foundation.css";
+@import "./styles/ambient.css";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
@@ -46,6 +48,21 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+    --motion-ease: var(--motion-ease);
+    --motion-page: var(--motion-page);
+    --motion-surface: var(--motion-surface);
+    --motion-control: var(--motion-control);
+    --motion-micro: var(--motion-micro);
+    --radius-window-4xl: var(--radius-window-4xl);
+    --radius-window-3xl: var(--radius-window-3xl);
+    --radius-window-2xl: var(--radius-window-2xl);
+    --radius-window-xl: var(--radius-window-xl);
+    --radius-window-lg: var(--radius-window-lg);
+    --radius-window-md: var(--radius-window-md);
+    --radius-window-sm: var(--radius-window-sm);
+    --radius-window-xs: var(--radius-window-xs);
+    --color-ambient-accent-wash: var(--ambient-accent-wash);
+    --color-ambient-accent: var(--ambient-accent);
 }
 
 :root {
@@ -81,6 +98,21 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+    --radius-window-xs: 0.125rem;
+    --radius-window-sm: 0.25rem;
+    --radius-window-md: 0.375rem;
+    --radius-window-lg: 0.5rem;
+    --radius-window-xl: 0.75rem;
+    --radius-window-2xl: 1rem;
+    --radius-window-3xl: 1.5rem;
+    --radius-window-4xl: 2rem;
+    --motion-micro: 120ms;
+    --motion-control: 180ms;
+    --motion-surface: 240ms;
+    --motion-page: 320ms;
+    --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+    --ambient-accent: #2563eb;
+    --ambient-accent-wash: rgba(59, 130, 246, 0.1);
 }
 
 .dark {
@@ -115,6 +147,8 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+    --ambient-accent: #4d9aff;
+    --ambient-accent-wash: rgba(61, 130, 246, 0.16);
 }
 
 @layer base {

@@ -5,6 +5,21 @@
       "kind": "unavailable",
       "text": "No visual reference supplied; using the Foundation defaults per the brief (no taste question asked)",
       "at": "2026-10-15T04:22:46.624Z"
+    },
+    {
+      "kind": "manual",
+      "text": "Vendored src/components/ambient/responder.ts: AmbientApiError used constructor parameter properties, rejected by the Vite template's erasableSyntaxOnly; rewrote as explicit fields (same behavior)",
+      "at": "2026-10-15T04:27:39.418Z"
+    },
+    {
+      "kind": "judgement",
+      "text": "verify's hotkey probe failed against the Vite dev server (first Ctrl+K after a cold load is dropped; later presses open in ~200ms) and passed 5/5 against the production build served by vite preview. Treated as a dev-server cold-start artefact; verified against the build.",
+      "at": "2026-10-15T04:37:12.510Z"
+    },
+    {
+      "kind": "unavailable",
+      "text": "host-screens check skipped: new project, so there were no pre-existing screens to baseline.",
+      "at": "2026-10-15T04:37:13.782Z"
     }
   ]
 }
