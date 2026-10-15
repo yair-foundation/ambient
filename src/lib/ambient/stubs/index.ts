@@ -5,9 +5,10 @@ import type { AmbientApiHandlers } from "@/components/ambient/responder"
 import { FALLBACK } from "./fallback"
 import { ds } from "./ds"
 import { home } from "./home"
+import { renewals } from "./renewals"
 import { triage } from "./triage"
 
-const PAGES = { home, triage, ds } // keyed by each page's setPageChip id
+const PAGES = { home, triage, renewals, ds } // keyed by each page's setPageChip id
 const LATENCY_MS = 400
 
 const settle = <T,>(value: T, signal: AbortSignal) =>

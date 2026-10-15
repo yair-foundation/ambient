@@ -21,4 +21,5 @@ Patterns spotted but not yet ruled on. Triage through the pattern watchlist prot
 - Master-detail list pane with a sheet on phones, and j/k queue keyboard navigation (lead triage; one surface).
 - Loading, empty and error states with Retry (lead triage; one surface).
 - Selectable list row (a native `<button>` styled as a card, used by the lead queue; flagged by `npm run audit:ds`). One surface.
+- Renewal risk review (`/accounts/renewals`, 2026-10-15) reuses the approved queue-workspace pattern from lead triage (list beside the record, Sheet on phones, filter Tabs, selectable row button) and the shared `UndoNotice`. That is a second surface for master-detail, built locally in `src/features/renewals/`; not promoted. Ask a person whether to extract a shared master-detail pane and a selectable list row. Also local: a four-tile summary built from Card, and a risk Badge mapping (high = destructive, medium = secondary, low = outline).
 - Tabs cannot wrap on phones without an `h-auto` override (note for the registry).

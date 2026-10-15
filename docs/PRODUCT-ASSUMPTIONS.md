@@ -32,3 +32,21 @@ target, soonest deadline first.** The rule is shown on screen under the filters.
 
 - The filter strip is a 3-column grid on phones (two rows, no horizontal scroll) with 32 px targets, which meets
   WCAG 2.2 AA (24 px minimum) but not the 44 px ideal. Open question: raise to 44 px.
+
+# Product assumptions (renewal risk review, `/accounts/renewals`)
+
+Made without customer research; enforced in `src/features/renewals/rules.ts` and covered by `rules.test.ts`.
+
+- **Scope**: the 14 accounts renewing within 90 days of the fixed "now" (2026-10-15). Revenue is ARR in US dollars.
+- **Risk score** (0 to 100) is the sum of evidence points: usage down 15% or more +15, down 30% or more +30, up 10% or more -10;
+  open priority-one escalation +35, priority-two +15; champion left +25; overdue invoice +10 (+20 past 30 days); each recent
+  positive signal -10. High is 50 or more, medium 25 to 49, low below 25. The weights are a first guess to validate.
+- **Order**: score weighted by closeness (x1.5 within 14 days, x1.3 within 30, x1.15 within 60), then the sooner renewal,
+  then the larger ARR. Planned accounts keep their place; the filter tabs separate planned from unplanned.
+- **ARR at risk**: once an account has a plan, its outcome decides (at risk or expected to churn counts). Before a plan, a high
+  assessed risk counts. Recording or revising a plan updates the summary immediately; Undo restores it.
+- **Open P1 escalation**: "renew as is" is refused until the plan acknowledges the escalation (a checkbox in the plan). Enforced
+  in the form and again in the store. Other outcomes do not need it.
+- **At risk and expected to churn** need a next step and a date. Other outcomes may leave both empty. An owner is always required
+  (default: you). A date cannot be in the past or after the renewal date.
+- Plans are kept in memory only (no backend), like triage decisions.

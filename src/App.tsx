@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { NAV } from "@/nav"
 import DsPage from "@/ds/ds-page"
 import Home from "@/pages/home"
+import Renewals from "@/features/renewals/renewals"
 import TriageQueue from "@/features/triage-queue/triage-queue"
 
 function pageFor(path: string) {
@@ -57,7 +58,7 @@ function Shell({ path }: { path: string }) {
         </div>
       </header>
       <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 pt-4">
-        {path === "/triage" ? <TriageQueue /> : path === "/ds" ? <DsPage /> : <Home />}
+        {path === "/triage" ? <TriageQueue /> : path === "/accounts/renewals" ? <Renewals /> : path === "/ds" ? <DsPage /> : <Home />}
       </main>
     </div>
   )
