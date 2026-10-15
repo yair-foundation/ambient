@@ -45,6 +45,11 @@ export interface Assessment {
   slaHoursLeft: number
 }
 
+/** "2026-11-14" -> "Nov 14, 2026" (dates are stored as ISO days, shown as people read them). */
+export function fmtDate(isoDay: string): string {
+  return new Date(`${isoDay}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
+}
+
 export const ACTION_LABEL: Record<ActionId, string> = {
   qualify: "Qualify",
   request_info: "Request info",
@@ -183,7 +188,7 @@ export function applyDecision(lead: Lead, d: Decision): DecisionResult {
       return {
         ok: true,
         lead: { ...lead, status: "nurture", revisitOn: d.revisitOn },
-        message: `${lead.company} moved to nurture until ${d.revisitOn}.`,
+        message: `${lead.company} moved to nurture until ${fmtDate(d.revisitOn)}.`,
       }
     case "disqualify":
       if (!d.reason) return { ok: false, error: "Choose a reason." }
@@ -195,9 +200,18 @@ export function applyDecision(lead: Lead, d: Decision): DecisionResult {
   }
 }
 
-/** Queue order: untriaged leads first, soonest first-response deadline first. */
+/**
+ * Queue order. Overdue leads come first, highest value first among them (a late reply costs most where the
+ * opportunity is largest); leads still inside their target follow, soonest deadline first.
+ */
 export function compareByUrgency(a: Lead, b: Lead): number {
-  return assess(a).slaHoursLeft - assess(b).slaHoursLeft
+  const A = assess(a).slaHoursLeft
+  const B = assess(b).slaHoursLeft
+  const aLate = A < 0
+  const bLate = B < 0
+  if (aLate !== bLate) return aLate ? -1 : 1
+  if (aLate) return b.estValue - a.estValue
+  return A - B
 }
 
 export const isOpen = (l: Lead) => l.status === "new"

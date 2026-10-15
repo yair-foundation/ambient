@@ -38,7 +38,6 @@ const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
 export function createTriageStore(seed: Lead[] = SEED_LEADS, opts: StoreOptions = {}) {
   const latency = opts.latencyMs ?? 450
-  let loadFailures = opts.mode === "error" ? 1 : 0
   let saveFailures = opts.failSave ? 1 : 0
   let snap: TriageSnapshot = { load: "loading", leads: [], log: [] }
   let seq = 0
@@ -48,16 +47,27 @@ export function createTriageStore(seed: Lead[] = SEED_LEADS, opts: StoreOptions 
     listeners.forEach((l) => l())
   }
 
-  async function load() {
-    set({ load: "loading", error: undefined })
-    if (opts.mode === "loading") return new Promise<void>(() => {}) // stays loading for review
-    await wait(latency)
-    if (loadFailures > 0) {
-      loadFailures -= 1
-      set({ load: "error", error: "We couldn't load your leads. Check your connection and try again." })
-      return
-    }
-    set({ load: "ready", leads: opts.mode === "empty" ? [] : seed.map((l) => ({ ...l })) })
+  let inflight: Promise<void> | null = null
+
+  /**
+   * Load the leads. In review mode "error" every automatic load fails and only an explicit retry
+   * (the Retry button) succeeds, so the error state is stable to look at and recoverable.
+   */
+  function load(options: { retry?: boolean } = {}): Promise<void> {
+    if (inflight && !options.retry) return inflight
+    inflight = (async () => {
+      set({ load: "loading", error: undefined })
+      if (opts.mode === "loading") return new Promise<void>(() => {}) // stays loading for review
+      await wait(latency)
+      if (opts.mode === "error" && !options.retry) {
+        set({ load: "error", error: "We couldn't load your leads. Check your connection and try again." })
+        return
+      }
+      set({ load: "ready", leads: opts.mode === "empty" ? [] : seed.map((l) => ({ ...l })) })
+    })().finally(() => {
+      inflight = null
+    })
+    return inflight
   }
 
   /** Edits to facts about a lead (filling a gap, confirming a duplicate). */

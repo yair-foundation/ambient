@@ -42,6 +42,17 @@ describe("assess", () => {
     const sorted = [lead("L-2041"), lead("L-2046")].sort(compareByUrgency)
     expect(sorted[0].id).toBe("L-2046")
   })
+
+  it("orders overdue leads by value, so a late reply to a big opportunity comes first", () => {
+    // Quillbox ($15k, 46h overdue) must not outrank Fernhill ($120k, 5h overdue)
+    const sorted = [lead("L-2050"), lead("L-2046")].sort(compareByUrgency)
+    expect(sorted.map((l) => l.id)).toEqual(["L-2046", "L-2050"])
+  })
+
+  it("orders leads inside their target by the soonest deadline", () => {
+    const sorted = [lead("L-2051"), lead("L-2049")].sort(compareByUrgency) // Tidewater due in 2h, Meridian due in 1h
+    expect(sorted[0].id).toBe("L-2049")
+  })
 })
 
 describe("applyDecision", () => {

@@ -57,6 +57,7 @@ export const CATALOG: CatalogEntry[] = [
     behavior: [
       "variants: default, secondary, outline, destructive, ghost, link",
       "Not interactive unless rendered as a link; never the only carrier of meaning: pair color with text",
+      "KNOWN ISSUE: variant=destructive (red text on a red tint) measures 4.49:1 at text-xs, just under WCAG AA. Until the system fixes it, use variant=outline with the destructive text role and an icon for blocked or failed status (see ReadinessBadge in src/features/triage/parts.tsx)",
     ],
     whenToUse: ["Status (Ready, Blocked), counts, category tags"],
     whenNotToUse: ["Actions (use Button)", "Long text"],
@@ -81,6 +82,7 @@ export const CATALOG: CatalogEntry[] = [
       "variants: default, destructive",
       "parts: Alert, AlertTitle, AlertDescription, AlertAction",
       "Renders role=alert; use for errors that block progress and for confirmations the user must notice",
+      "KNOWN ISSUE: variant=destructive renders the description at text-destructive/90, 4.49:1 on the card ground, just under WCAG AA. Until the system fixes it, use the default variant with an alert icon and a text-destructive title",
     ],
     whenToUse: ["Load failure with a Retry action", "A save that failed", "Confirmation that needs an Undo"],
     whenNotToUse: ["Field-level validation (use aria-invalid on the control plus text)", "Decorative banners"],

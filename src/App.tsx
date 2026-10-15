@@ -57,7 +57,7 @@ function Shell({ path }: { path: string }) {
           </span>
         </div>
       </header>
-      <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 py-4">
+      <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 pt-4">
         {path === "/triage/a" ? <TriageA /> : path === "/triage/b" ? <TriageB /> : path === "/ds" ? <DsPage /> : <Home />}
       </main>
     </div>
